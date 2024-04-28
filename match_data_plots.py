@@ -270,61 +270,6 @@ def plot_top_5_bowlers(bowlers_data):
 
 
 
-def filter_data(match_data , selected_team , season = None ):
-    temp_data = match_data.copy() 
-    if season != None : 
-        temp_data = temp_data[temp_data['Season'] == season ]
-    filtered_data = temp_data[(temp_data['Team1'] == selected_team) | (temp_data['Team2'] == selected_team)]
-    return filtered_data
-
-def plot_stadium_matches_for_team(match_data , selected_team, season = None , top_n=10):
-    filtered_data = filter_data(match_data , selected_team , season = season )
-    
-    # Count matches won and lost by each stadium
-    stadium_stats = filtered_data.groupby('Venue')['WinningTeam'].value_counts().unstack(fill_value=0)
-    stadium_stats['MatchesLost'] = stadium_stats.sum(axis=1) - stadium_stats.get(selected_team, 0)
-    stadium_stats['MatchesWon'] = stadium_stats.get(selected_team, 0)
-    
-    # Calculate percentages
-    stadium_stats['MatchesWonPercentage'] = (stadium_stats['MatchesWon'] / (stadium_stats['MatchesWon'] + stadium_stats['MatchesLost'])) * 100
-    stadium_stats['MatchesLostPercentage'] = (stadium_stats['MatchesLost'] / (stadium_stats['MatchesWon'] + stadium_stats['MatchesLost'])) * 100
-    
-    # Sort stadiums based on total matches played
-    stadium_stats['TotalMatches'] = stadium_stats['MatchesWon'] + stadium_stats['MatchesLost']
-    stadium_stats = stadium_stats.sort_values(by='TotalMatches', ascending=False).head(top_n)
-    stadium_stats = stadium_stats[::-1]
-    
-    # Create custom hover text
-    hover_text = [f'Total Matches: {total}<br>Matches Won: {won}<br>Matches Lost: {lost}' 
-                  for total, won, lost in zip(stadium_stats['TotalMatches'], 
-                                              stadium_stats['MatchesWon'], 
-                                              stadium_stats['MatchesLost'])]
-    
-    # Plotting using Plotly
-    fig = go.Figure(data=[
-        go.Bar(name='Matches Won %', y=stadium_stats.index, x=stadium_stats['MatchesWonPercentage'], 
-               orientation='h', hovertext=hover_text),
-        go.Bar(name='Matches Lost %', y=stadium_stats.index, x=stadium_stats['MatchesLostPercentage'], 
-               orientation='h', hovertext=hover_text)
-    ])
-    
-    fig.update_layout(
-        title=f'Stadium-wise Matches Won vs Lost for {selected_team}',
-        yaxis=dict(title='Stadium'),
-        xaxis=dict(title='Percentage of Matches'),
-        barmode='stack',
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.1,
-            xanchor="center",
-            x=0.5
-        ),
-        width = 800 , height = 400 
-    )
-    return fig
-    
-
 # # Example usage
 # selected_team = "Royal Challengers Bangalore"
 # plot_stadium_matches_for_team(selected_team)
@@ -361,3 +306,352 @@ def plot_match_won_by_toss_decision(match_data, season=None, selected_team=None,
     ))
     return fig
 # fig = plot_match_won_by_toss_decision(match_data ,  selected_team = "Rajasthan Royals" )
+
+
+
+
+def filter_data(match_data , selected_team , season = None ):
+    temp_data = match_data.copy() 
+    if season != None : 
+        temp_data = temp_data[temp_data['Season'] == season ]
+    filtered_data = temp_data[(temp_data['Team1'] == selected_team) | (temp_data['Team2'] == selected_team)]
+    return filtered_data
+
+
+def plot_stadium_matches_for_team(match_data, selected_team, season=None, top_n=10):
+    filtered_data = filter_data(match_data, selected_team, season=season)
+    
+    # Count matches won and lost by each stadium
+    stadium_stats = filtered_data.groupby('Venue')['WinningTeam'].value_counts().unstack(fill_value=0)
+    stadium_stats['MatchesLost'] = stadium_stats.sum(axis=1) - stadium_stats.get(selected_team, 0)
+    stadium_stats['MatchesWon'] = stadium_stats.get(selected_team, 0)
+    
+    # Calculate percentages
+    stadium_stats['MatchesWonPercentage'] = (stadium_stats['MatchesWon'] / (stadium_stats['MatchesWon'] + stadium_stats['MatchesLost'])) * 100
+    stadium_stats['MatchesLostPercentage'] = (stadium_stats['MatchesLost'] / (stadium_stats['MatchesWon'] + stadium_stats['MatchesLost'])) * 100
+    
+    # Sort stadiums based on total matches played
+    stadium_stats['TotalMatches'] = stadium_stats['MatchesWon'] + stadium_stats['MatchesLost']
+    stadium_stats = stadium_stats.sort_values(by='TotalMatches', ascending=False).head(top_n)
+    stadium_stats = stadium_stats[::-1]
+    
+    # Create custom hover text
+    hover_text = [f'Total Matches: {total}<br>Matches Won: {won}<br>Matches Lost: {lost}' 
+                  for total, won, lost in zip(stadium_stats['TotalMatches'], 
+                                              stadium_stats['MatchesWon'], 
+                                              stadium_stats['MatchesLost'])]
+    
+    # Create text for percentages on bars
+    percentage_text = [f'{percentage:.1f}%' for percentage in stadium_stats['MatchesWonPercentage']]
+    percentage_text_loss = [f'{(100 - percentage):.1f}%' for percentage in stadium_stats['MatchesWonPercentage']]
+    # Plotting using Plotly
+    fig = go.Figure(data=[
+        go.Bar(name='Matches Won %', y=stadium_stats.index, x=stadium_stats['MatchesWonPercentage'], 
+               orientation='h', hovertext=hover_text, text=percentage_text, 
+               marker=dict(color='skyblue', line=dict(color='navy', width=1.5))),
+        go.Bar(name='Matches Lost %', y=stadium_stats.index, x=stadium_stats['MatchesLostPercentage'], 
+               orientation='h', hovertext=hover_text, text=percentage_text_loss, 
+               marker=dict(color='salmon', line=dict(color='maroon', width=1.5)))
+    ])
+    
+    fig.update_layout(
+        title=f'',
+        yaxis=dict(title='Stadium'),
+        xaxis=dict(title='Percentage of Matches'),
+        barmode='stack',
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.1,
+            xanchor="center",
+            x=0.5
+        ),
+        width=800, height=400
+    )
+    return fig
+    
+
+
+def plot_matches_by_team( df , team_name , season = None ):
+    team_names_dict , reverse_team_mapping = get_mappings()
+
+    team_matches = df[(df['Team1'] == team_name) | (df['Team2'] == team_name)]
+    if season != None : 
+        team_matches = team_matches[team_matches['Season'] == season ]
+    team_opponent_matches = team_matches[team_matches['Team2'] != team_name]
+    # Count matches won and lost by the specified team against each opponent
+    win_counts = team_opponent_matches[team_opponent_matches['WinningTeam'] == team_name]['Team2'].value_counts()
+    loss_counts = team_opponent_matches[team_opponent_matches['WinningTeam'] != team_name]['Team2'].value_counts()
+
+    # Create a Plotly stacked bar chart
+    fig = go.Figure()
+
+    # Add wins
+    fig.add_trace(go.Bar(
+       y=[team_names_dict[team] for team in win_counts.index],
+        x=win_counts.values,
+        name='Won',
+        orientation='h',
+        marker=dict(color='skyblue', line=dict(color='navy', width=1.5))  ,
+        hovertext=[f"{team_name} won {value} matches against {opponent}" for opponent, value in win_counts.items()]
+    ))
+
+    # Add losses
+    fig.add_trace(go.Bar(
+        y=[team_names_dict[team] for team in loss_counts.index],
+        x=loss_counts.values,
+        name='Lost',
+        orientation='h',
+        marker=dict(color='salmon', line=dict(color='maroon', width=1.5))  ,
+        hovertext=[f"{team_name} lost {value} matches against {opponent}" for opponent, value in loss_counts.items()]
+    ))
+
+    fig.update_layout(
+        title="",
+        xaxis_title='Number of Matches',
+        yaxis_title='Opponent Team',
+        barmode='stack' , width = 500 , height = 400  , 
+        legend=dict(
+                orientation="h",
+                yanchor="top",
+                y=1.15,
+                xanchor="center",
+                x=0.5
+            )
+    )
+    return fig 
+
+
+
+def plot_batter_dismissals(match_data, ball_data, batter, season=None):
+    ball_data = ball_data.merge(match_data[['ID', 'Season', 'Team1', 'Team2']], on='ID', how='left')
+    ball_data['BowlingTeam'] = np.where(ball_data['BattingTeam'] != ball_data['Team1'], ball_data['Team1'], ball_data['Team2'])
+    if season is not None:
+        ball_data = ball_data[ball_data['Season'] == season] 
+    ball_data = ball_data[ball_data['batter'] == batter].reset_index(drop=True)
+    bowler_dismissal = {}
+    for i in range(len(ball_data)):
+        if ball_data['player_out'][i] == batter:
+            bowler = ball_data['bowler'][i]
+            if bowler in bowler_dismissal:
+                bowler_dismissal[bowler] += 1
+            else:
+                bowler_dismissal[bowler] = 1 
+    sorted_bowlers = dict(sorted(bowler_dismissal.items(), key=lambda item: item[1], reverse=True))
+    
+    # Get top 10 bowlers
+    top_10_bowlers = dict(list(sorted_bowlers.items())[:10][::-1])
+    
+    # Extracting bowler names and dismissals
+    bowler_names = list(top_10_bowlers.keys())
+    dismissals = list(top_10_bowlers.values())
+    
+    # Plotting using Plotly
+    fig = go.Figure(data=[go.Bar(x=dismissals, y=bowler_names, orientation='h',
+                                 marker=dict(color='skyblue', line=dict(color='navy', width=1.5)))])
+    fig.update_layout(title='',
+                      xaxis_title='Number of Dismissals',
+                      yaxis_title='Bowler' , width = 600 , height = 400 )
+    return fig
+
+def plot_season_wise_runs( match_data , ball_data , batter , season = None ) : 
+    ball_data = ball_data.merge(match_data[['ID', 'Season', 'Team1', 'Team2']], on='ID', how='left')
+    ball_data['BowlingTeam'] = np.where(ball_data['BattingTeam'] != ball_data['Team1'], ball_data['Team1'], ball_data['Team2'])
+    ball_data = ball_data[ball_data['batter'] == batter ].reset_index(drop = True ) 
+    if season == None : 
+        
+        seasons = [i for i in range(2008 , 2023 ) ] 
+        season_wise_runs = {} 
+    
+        for season in seasons : 
+            season_wise_runs[season] = sum(ball_data[ball_data['Season'] ==  season ]['batsman_run']) 
+    
+        years = list(season_wise_runs.keys())
+        runs = list(season_wise_runs.values())
+        
+        fig = go.Figure(data=go.Scatter(x=years, y=runs, mode='lines'))
+        
+        fig.update_layout(title='', xaxis_title='Year', yaxis_title='Runs' , width = 500 , height = 400 )
+        return fig 
+    else:
+        ball_data = ball_data[ball_data['Season'] == season ]
+        matches = ball_data['ID'].unique() 
+        matches_runs = {}
+        for match in matches : 
+            matches_runs[match] = sum(ball_data[ball_data['ID'] == match]['batsman_run'] ) 
+        runs = list(matches_runs.values()) 
+
+        fig = go.Figure(data=go.Scatter(x=[i for i in range(len(runs))], y=runs, mode='lines'))
+        fig.update_layout(title='',
+                          xaxis_title='Match number',
+                          yaxis_title='Runs',
+                          width=600, height=400)
+        return fig
+# plot_season_wise_runs ( match_data , ball_data , "V Kohli")   
+
+
+
+def stadium_wise_runs(match_data, ball_data, batter, season=None):
+    ball_data = ball_data.merge(match_data[['ID', 'Season', 'Team1', 'Team2', 'Venue']], on='ID', how='left')
+    ball_data['BowlingTeam'] = np.where(ball_data['BattingTeam'] != ball_data['Team1'], ball_data['Team1'], ball_data['Team2'])
+    
+    if season is not None:
+        ball_data = ball_data[ball_data['Season'] == season] 
+    
+    ball_data = ball_data[ball_data['batter'] == batter].reset_index(drop=True)
+    
+    total_batsman_run = ball_data.groupby('Venue')['batsman_run'].sum().reset_index()
+    
+    total_batsman_run = total_batsman_run.sort_values(by='batsman_run', ascending=False).head(5)[::-1]  
+    
+    fig = go.Figure(go.Bar(
+        x=total_batsman_run['batsman_run'],
+        y=total_batsman_run['Venue'],
+        orientation='h',
+        marker=dict(color='skyblue', line=dict(color='navy', width=1))
+    ))
+    
+    fig.update_layout(
+        title='',
+        xaxis_title='Total Runs',
+        yaxis_title='Venue',
+        width=700,
+        height=400
+    )
+    
+    return fig
+
+def plot_runs_scored_against_bowlers(match_data, ball_data, batter, season=None):
+    ball_data = ball_data.merge(match_data[['ID', 'Season', 'Team1', 'Team2']], on='ID', how='left')
+    ball_data['BowlingTeam'] = np.where(ball_data['BattingTeam'] != ball_data['Team1'], ball_data['Team1'], ball_data['Team2'])
+    if season is not None:
+        ball_data = ball_data[ball_data['Season'] == season] 
+    ball_data = ball_data[ball_data['batter'] == batter].reset_index(drop=True)
+    
+    bowler_runs = {}
+    for i in range(len(ball_data)):
+        bowler = ball_data['bowler'][i]
+        runs = ball_data['batsman_run'][i]
+        if bowler in bowler_runs:
+            bowler_runs[bowler] += runs
+        else:
+            bowler_runs[bowler] = runs
+    
+    top_10_bowlers = dict(sorted(bowler_runs.items(), key=lambda item: item[1], reverse=True)[:10][::-1])
+    
+    bowler_names = list(top_10_bowlers.keys())
+    runs_scored = list(top_10_bowlers.values())
+    
+    fig = go.Figure(data=[go.Bar(x=runs_scored, y=bowler_names, orientation='h',
+                                 marker=dict(color='skyblue', line=dict(color='navy', width=1.5)))])
+    fig.update_layout(title='',
+                      xaxis_title='Runs Scored',
+                      yaxis_title='Bowler', 
+                      width=600, height=400)
+    return fig
+
+
+
+
+def plot_season_wise_violin_plot(match_data, ball_data, batter):
+    ball_data = ball_data.merge(match_data[['ID', 'Season', 'Team1', 'Team2']], on='ID', how='left')
+    ball_data['BowlingTeam'] = np.where(ball_data['BattingTeam'] != ball_data['Team1'], ball_data['Team1'], ball_data['Team2'])
+    ball_data = ball_data[ball_data['batter'] == batter].reset_index(drop=True)
+    seasons = [i for i in range(2008, 2023)] 
+    season_wise_runs = {} 
+
+    for season in seasons: 
+        season_wise_runs[season] = []
+        matches = ball_data[(ball_data['Season'] == season)]['ID'].unique() 
+        for match in matches: 
+            runs = sum(ball_data[(ball_data['Season'] == season) & (ball_data['ID'] == match)]['batsman_run'])
+            season_wise_runs[season].append(runs)
+    
+    years = list(season_wise_runs.keys())
+    values = list(season_wise_runs.values())
+    
+    traces = []
+    
+    for i, year in enumerate(years):
+        trace = go.Violin(y=values[i], name=str(year), box_visible=False, meanline_visible=True, line_color='salmon', showlegend=False)
+        traces.append(trace)
+    
+    layout = go.Layout(title="", yaxis=dict(title="Values") , width=600 , height=400 )
+    fig = go.Figure(data=traces, layout=layout)
+    return fig
+def get_batter_runs( match_data , ball_data , batter , season = None ) : 
+    ball_data = ball_data.merge(match_data[['ID', 'Season', 'Team1', 'Team2']], on='ID', how='left')
+    ball_data['BowlingTeam'] = np.where(ball_data['BattingTeam'] != ball_data['Team1'], ball_data['Team1'], ball_data['Team2'])
+    if season != None :
+        ball_data = ball_data[ball_data['Season'] == season ] 
+    ball_data = ball_data[ball_data['batter'] == batter ].reset_index(drop = True )
+    total_runs = 0 
+    fours = 0 
+    sixes = 0 
+    dot_balls = 0 
+    dismissals = 0 
+    matches = len(ball_data['ID'].unique())
+    balls = 0 
+    run_123 = 0 
+    for i in range(len(ball_data)): 
+        total_runs += ball_data['batsman_run'][i] 
+        fours += ball_data['batsman_run'][i] == 4 
+        sixes += ball_data['batsman_run'][i] == 6
+        dismissals += ball_data['player_out'][i] == batter 
+        balls += 1 
+        dot_balls += ball_data['batsman_run'][i] == 0 
+        if ball_data['batsman_run'][i] > 0 and ball_data['batsman_run'][i] < 4 : 
+            run_123 += 1
+    strike_rate = '-'
+    if balls != 0 : 
+        strike_rate = round ((total_runs * 100 )/balls , 2 )
+    average = 'inf'
+    if dismissals != 0 : 
+        average = total_runs/dismissals
+    
+    fifties = 0 
+    hundreds = 0 
+    
+    match_runs = {} 
+    match_ids = list(ball_data['ID'].unique()) 
+    for match_id in match_ids : 
+        match_runs[match_id] = sum(ball_data[ball_data['ID'] == match_id]['batsman_run']) 
+        if match_runs[match_id] >= 100 : 
+            hundreds += 1 
+        elif match_runs[match_id] >= 50 : 
+            fifties += 1 
+    data = {
+        'total_runs' : total_runs , 
+        'fours' : fours , 
+        'sixes' : sixes , 
+        'strike_rate' : strike_rate , 
+        'dismissals' : dismissals , 
+        'balls' : balls , 
+        'matches' : matches , 
+        'hundreds' : hundreds , 
+        'fifties' : fifties ,
+        'average' : average , 
+        'dot_balls' : dot_balls,
+        'run123' : run_123
+    }
+    return data
+
+
+def plot_runs_distribution( match_data , ball_data , batter , season = None ):
+    batter_data = get_batter_runs( match_data , ball_data , batter , season = season )
+    # Data for pie chart
+    labels = ['4s', '6s', '1s, 2s, 3s', 'Dot balls']
+    sizes = [batter_data['fours'], batter_data['sixes'], batter_data['run123'], batter_data['dot_balls']]
+
+    # Create pie chart
+    fig = go.Figure(data=[go.Pie(labels=labels, values=sizes, hole=.3)])
+
+    # Update layout
+    fig.update_layout(
+        title='',
+        width=600,
+        height=400,
+        legend=dict(orientation="h", y=1.2 , x = 0.5 ,
+        xanchor="center",  ) 
+    )
+    return fig

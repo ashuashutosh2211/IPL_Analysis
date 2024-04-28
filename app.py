@@ -6,15 +6,14 @@ import numpy as np
 import pandas as pd
 import preprocess_match_data
 import match_data_info
-from match_data_info import get_most_time_winner, get_all_teams , get_winner , get_stats , get_scores_data , get_top_batsman , get_top_bowlers 
-from match_data_plots import plot_match_won_by_toss_decision, plot_team_performance, plot_percentage_matches_won_and_lost_by_teams, best_batsmen , plot_top_5_batsmen, top_bowlers, plot_top_5_bowlers ,plot_stadium_matches_for_team 
+from match_data_info import get_most_time_winner, get_all_teams , get_winner , get_stats , get_scores_data , get_top_batsman , get_top_bowlers , get_all_batsman , get_batter_runs
+from match_data_plots import plot_match_won_by_toss_decision, plot_team_performance, plot_percentage_matches_won_and_lost_by_teams, best_batsmen , plot_top_5_batsmen, top_bowlers, plot_top_5_bowlers ,plot_stadium_matches_for_team , plot_matches_by_team
+from match_data_plots import plot_batter_dismissals , plot_runs_scored_against_bowlers , stadium_wise_runs , plot_season_wise_runs , plot_season_wise_violin_plot, plot_runs_distribution 
 import warnings 
 import numpy as np
 import json 
-# Suppress warnings
 warnings.filterwarnings("ignore")
 
-# Load the data
 match_data = pd.read_csv("IPL_Matches_2008_2022.csv") 
 ball_data = pd.read_csv("IPL_Ball_by_Ball_2008_2022.csv")
 preprocess_match_data.preprocess(match_data)
@@ -27,23 +26,18 @@ with open('purple_cap_dict.json', 'r') as file:
 with open('teams_score_data.json') as file:
     teams_scores_data = json.load(file)
 
-# Initialize the Dash app with Bootstrap theme
 external_stylesheets = [dbc.themes.BOOTSTRAP]
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
-# Define the layout
 app.layout = html.Div([
     html.H1("IPL Analysis Dashboard", style={'textAlign': 'center'}),
     
-    # Tabs for different sections
     dcc.Tabs(id='tabs', value='tab-home', children=[
         dcc.Tab(label='Home', value='tab-home'),
         dcc.Tab(label='Teams', value='tab-teams'),
-        dcc.Tab(label="New" , value='tab-new')
-        # Add more tabs here as needed
+        dcc.Tab(label='Batsman', value='tab-batter'), 
     ]),
     
-    # Dropdown to select season
     html.Div([
         html.Label("Select Season"),
         dcc.Dropdown(
@@ -54,20 +48,15 @@ app.layout = html.Div([
         )
     ], style={'width': '20%', 'display': 'inline-block', 'verticalAlign': 'top'}),
     
-    # Placeholder for content update based on callback
     html.Div(id='tabs-content') , 
     
     html.Div(id='selected-season'),
     
-   # Container for cards
     dbc.Row([
-        # First column
         dbc.Col(html.Div(id='trophy-winner-info'),width = 3 ),
         
-        # Second column
         dbc.Col(html.Div(id='orange-cap-winner-info'),width = 3 ),
         
-        # Third column
         dbc.Col(html.Div(id='purple-cap-winner-info'),width = 3 ) , 
         
         dbc.Col(html.Div(id = 'stats-info' ) , width = 3 )
@@ -86,15 +75,11 @@ app.layout = html.Div([
     ]),
 
 
-    # Container for cards
     dbc.Row([
-        # First column
         dbc.Col(html.Div(id='team-trophy-winner-info'),width = 3 ),
         
-        # Second column
         dbc.Col(html.Div(id='team-most-runs'),width = 3 ),
-        
-        # Third column
+
         dbc.Col(html.Div(id='team-most-wickets'),width = 3 ) , 
         
         dbc.Col(html.Div(id = 'team-stats-info' ) , width = 3 )
@@ -104,9 +89,6 @@ app.layout = html.Div([
             html.Div(id='team-matches-by-toss-decision-plot'),
             
         ], width=3) , 
-        # dbc.Col([
-        #     html.Div(id='team-performance-plot'),
-        # ], width = 5 ),
         dbc.Col([
             html.Div(id='team-matches-won-by-teams-plot')
         ], width=4)
@@ -134,12 +116,57 @@ app.layout = html.Div([
         dbc.Col([
             html.Div(id='stadium-matches-plot'),
         ], width=6),
-        
+        dbc.Col([ 
+            html.Div(id = 'plot-matches-by-team'),
+        ] , width=6 )
     ]),
+    html.Div(
+        [dcc.Dropdown(id='batter-dropdown')],
+        style={'display': 'none'}  
+    ),
 
+    dbc.Row([
+        dbc.Col(html.Div(id='batter-runs'),width = 2 ),
+        
+        dbc.Col(html.Div(id='batter-sixes'),width = 2 ),
+
+        dbc.Col(html.Div(id='batter-fours'),width = 2 ) , 
+        
+        dbc.Col(html.Div(id = 'batter-av-sr' ) , width = 2 ) , 
+
+        dbc.Col(html.Div(id = 'batter-fifty'  ) , width = 2) , 
+
+        dbc.Col(html.Div(id = 'batter-hundred'  ) , width = 2) , 
+    ]),
+    dbc.Row([
+        dbc.Col([
+            html.Div(id='plot-batter-dismissals'),
+        ], width=7),
+
+        dbc.Col([ 
+            html.Div(id = 'plot-runs-scored-against-bowlers'),
+        ] , width=5 )
+    ]),
+    dbc.Row([
+        dbc.Col([
+            html.Div(id = 'plot-runs')
+        ]) , 
+        dbc.Col([
+            html.Div(id = "plot-season-wise-violin-plot")
+        ])
+    ]),
+    dbc.Row([
+        dbc.Col([
+            html.Div(id='plot-stadium-wise-runs'),
+        ], width=4),
+
+        dbc.Col([ 
+             html.Div(id = 'runs-distribution'),
+        ] , width=6  )
+    ]),
+    
 ])
 
-# Update the callback for the "Home" tab to include the plot components
 @app.callback(
     Output('tabs-content', 'children'),
     [Input('tabs', 'value')]
@@ -248,7 +275,6 @@ def render_content(tab):
                     ],
                    value=get_all_teams(match_data)[0],
                 ),
-                # html.Div(id='team-selected-info')
             ], style={'width': '20%', 'display': 'inline-block', 'verticalAlign': 'top'}),
             html.H3( id = "select-team-info"), 
             dbc.Row([
@@ -344,18 +370,182 @@ def render_content(tab):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
+                            html.H4("Stadium-wise Wins"),
                             html.Div(id='stadium-matches-plot'),
                         ])
                     ])
-                ], width=8),
+                ], width=7),
+
+                dbc.Col([ 
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H4("Wins/Losses against opponents"),
+                            html.Div(id = 'plot-matches-by-team'),
+                        ])
+                    ]),
+                    
+                ] , width=5 )
             ]),
 
         ])
-    elif tab == 'tab-new':
+    elif tab == 'tab-batter':
         return html.Div([
-            html.H4('New Tab'),
-            html.P("This is a new tab. Add content here as needed.")
+            html.Div([
+                html.Label("Select Batsman"),
+                dcc.Dropdown(
+                    id='batter-dropdown',
+                    options=[
+                        {'label': team, 'value': team} for team in get_all_batsman(ball_data)
+                    ],
+                   value="V Kohli",
+                ),
+            ], style={'width': '20%', 'display': 'inline-block', 'verticalAlign': 'top'}),
+            
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            dbc.Row([
+                                dbc.Col([
+                                    html.Div(html.Img(src='assets/ipl_logo.png', style={'height': '84px', 'width': '80px'})),
+                                ]),
+                                dbc.Col([
+                                    html.Div(id='batter-runs')
+                                ])
+                            ])
+                        ])
+                    ])
+                ], width=2),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            dbc.Row([
+                                dbc.Col([
+                                    html.Div(html.Img(src='assets/sixes.png', style={'height': '80px', 'width': '80px'})),
+                                ]),
+                                dbc.Col([
+                                    html.Div(id='batter-sixes')
+                                ])
+                            ]),
+                        ])
+                    ])
+                ], width=2),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            dbc.Row([
+                                dbc.Col([
+                                    html.Div(html.Img(src='assets/fours.png', style={'height': '80px', 'width': '80px'})),
+                                ]),
+                                dbc.Col([
+                                    # html.H4("Most Wickets"),
+                                    html.Div(id='batter-fours')
+                                ])
+                            ]),
+                        ])
+                    ])
+                ], width=2),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            dbc.Row([
+                                dbc.Col([
+                                    html.Div(html.Img(src='assets/ipl_logo.png', style={'height': '84px', 'width': '80px'})),
+                                ]),
+                                dbc.Col([
+                                    html.Div(id="batter-av-sr")
+                                ])
+                            ])
+                        ])
+                    ])
+                ], width=2),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            dbc.Row([
+                                dbc.Col([
+                                    html.Div(html.Img(src='assets/fifty.png', style={'height': '84px', 'width': '80px'})),
+                                ]),
+                                dbc.Col([
+                                    html.Div(id="batter-fifty")
+                                ])
+                            ])
+                        ])
+                    ])
+                ], width=2),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            dbc.Row([
+                                dbc.Col([
+                                    html.Div(html.Img(src='assets/hundred.png', style={'height': '84px', 'width': '80px'})),
+                                ]),
+                                dbc.Col([
+                                    html.Div(id="batter-hundred")
+                                ])
+                            ])
+                        ])
+                    ])
+                ], width=2)
+            ]),
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.Div(id = 'plot-runs')
+                        ])
+                    ])
+                ]) , 
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.Div(id = "plot-season-wise-violin-plot")
+                        ])
+                    ])
+                ])
+            ]),
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H4("Most Dismissals against Bowlers"),
+                            html.Div(id='plot-batter-dismissals'),
+                        ])
+                    ])
+                ], width=6),
+
+                dbc.Col([ 
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H4("Most Runs Scored against bowlers"),
+                            html.Div(id = 'plot-runs-scored-against-bowlers'),
+                        ])
+                    ]),
+                    
+                ] , width=6  )
+            ]),
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.Div(id='plot-stadium-wise-runs'),
+                        ])
+                    ])
+                ], width=6),
+
+                dbc.Col([ 
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.Div(id = 'runs-distribution'),
+                        ])
+                    ]),
+                    
+                ] , width=6  )
+            ]),
+
         ])
+
+    
     else:
         return html.Div([
             html.H4('404 - Not Found'),
@@ -680,6 +870,235 @@ def update_toss_decision_plot(selected_year, selected_team):
     else:
         return ""
 
+
+@app.callback(
+    Output('plot-matches-by-team' , 'children') , 
+    [Input('year-dropdown' , 'value'),
+     Input('team-dropdown' , 'value')]  
+)
+def update_plot_matches_by_team(selected_year , selected_team ) : 
+    if selected_team : 
+        fig = plot_matches_by_team(match_data , selected_team , season = selected_year ) 
+        return dcc.Graph(figure = fig ) 
+    else: 
+        return ""
+
+
+@app.callback(
+    Output('batter-runs' , 'children') , 
+    [Input('tabs', 'value'),
+        Input('year-dropdown' , 'value') , 
+     Input('batter-dropdown' , 'value')] 
+)
+def update_batter_runs(active_tab , selected_year , selected_batter ) : 
+    if active_tab != 'tab-batter':
+        return ""
+    if selected_batter == None : 
+        selected_batter == "V Kohli"
+    data = get_batter_runs(match_data , ball_data , batter= selected_batter , season = selected_year) 
+    return html.Div([
+        html.H3("Runs"),
+        html.H3(f"{data['total_runs']}")
+    ])
+
+@app.callback(
+    Output('batter-fours' , 'children'),
+    [Input('tabs', 'value'),
+        Input('year-dropdown' , 'value') , 
+        Input('batter-dropdown' , 'value') 
+    ]
+)
+def update_batter_fours(active_tab , selected_year , selected_batter ) : 
+    if active_tab != 'tab-batter':
+        return ""
+    if selected_batter == None : 
+        selected_batter == "V Kohli"
+    data = get_batter_runs(match_data , ball_data , batter= selected_batter , season = selected_year) 
+    return html.Div([
+        html.H2(f"{data['fours']}")
+    ])
+
+
+@app.callback(
+    Output('batter-sixes' , 'children'),
+    [Input('tabs', 'value'),
+        Input('year-dropdown' , 'value') , 
+        Input('batter-dropdown' , 'value') 
+    ]
+)
+def update_batter_sixes(active_tab, selected_year , selected_batter ) : 
+    if active_tab != 'tab-batter':
+        return ""
+    if selected_batter == None : 
+        selected_batter == "V Kohli"
+    data = get_batter_runs(match_data , ball_data , batter= selected_batter , season = selected_year) 
+    return html.Div([
+        html.H2(f"{data['sixes']}")
+    ])
+
+
+@app.callback(
+    Output('batter-av-sr' , 'children') , 
+    [Input('tabs' , 'value') ,
+     Input('year-dropdown' , 'value'),
+     Input('batter-dropdown' , 'value')] 
+)
+def update_batter_av_sr(active_tab , selected_year , selected_batter ) : 
+    if active_tab != 'tab-batter':
+        return ""
+    if selected_batter == None : 
+        selected_batter == "V Kohli"
+    data = get_batter_runs(match_data , ball_data , batter=selected_batter , season=selected_year) 
+    average = data['average'] 
+    if average == 'inf':
+        average = '-'
+    else : 
+        average = round(average , 2 )
+    return html.Div([
+        html.H5(f"SR {data['strike_rate']}"),
+        html.H5(f"Av {average}")
+    ])
+
+@app.callback(
+    Output('batter-hundred' , 'children') , 
+    [Input('tabs' , 'value'),
+     Input('year-dropdown' , 'value'),
+     Input('batter-dropdown' , 'value')] 
+)
+def update_batter_hundred(active_tab , selected_year , selected_batter ):
+    if active_tab != 'tab-batter':
+        return ""
+    if selected_batter == None : 
+        selected_batter == "V Kohli"
+    data = get_batter_runs(match_data , ball_data , batter=selected_batter , season=selected_year) 
+    return html.Div([
+        html.H2(f"{data['hundreds']}")
+
+    ])
+
+
+@app.callback(
+    Output('batter-fifty' , 'children') , 
+    [Input('tabs' , 'value'),
+     Input('year-dropdown' , 'value'),
+     Input('batter-dropdown' , 'value')] 
+)
+def update_batter_fifty(active_tab , selected_year , selected_batter ):
+    if active_tab != 'tab-batter':
+        return ""
+    if selected_batter == None : 
+        selected_batter == "V Kohli"
+    data = get_batter_runs(match_data , ball_data , batter=selected_batter , season=selected_year) 
+    return html.Div([
+        html.H2(f"{data['fifties']}")
+
+    ])
+
+
+@app.callback(
+    Output('plot-batter-dismissals' , 'children'), 
+    [Input('tabs' , 'value'),
+        Input('year-dropdown' , 'value') ,
+        Input('batter-dropdown' , 'value') 
+    ]
+)
+def update_plot_batter_dismissals(active_tab , selected_year , selected_batter ) : 
+    if active_tab != 'tab-batter':
+        return ""
+    fig = plot_batter_dismissals(match_data, ball_data, batter= selected_batter, season=selected_year)
+    return html.Div([
+        dcc.Graph(figure=fig)
+    ])
+
+
+
+@app.callback(
+    Output('plot-runs-scored-against-bowlers' , 'children') , 
+    [Input('tabs' , 'value'),
+        Input('year-dropdown' , 'value') ,
+        Input('batter-dropdown' , 'value') 
+    ]
+)
+def update_plot_runs_scored_against_bowler(active_tab , selected_year , selected_batter ) : 
+    if active_tab != 'tab-batter':
+        return ""
+    fig = plot_runs_scored_against_bowlers(
+        match_data , ball_data , batter= selected_batter , season= selected_year
+    )
+    return html.Div([
+        dcc.Graph(figure=fig)
+    ])
+
+
+@app.callback(
+    Output('plot-runs' , 'children') , 
+    [
+        Input('tabs' , 'value'),
+        Input('year-dropdown' , 'value') ,
+        Input('batter-dropdown' , 'value') 
+    ]
+)
+def update_plot_runs(active_tab , selected_year , selected_batter ) : 
+    if active_tab != 'tab-batter':
+        return "" 
+    fig = plot_season_wise_runs(match_data , ball_data, batter=selected_batter , season=selected_year) 
+    return html.Div([
+        html.H3("Line Plot of Runs scored"),
+        dcc.Graph(figure=fig)
+    ])
+
+
+@app.callback(
+    Output('plot-season-wise-violin-plot' , 'children') , 
+    [
+        Input('tabs' , 'value'),
+        Input('year-dropdown' , 'value') ,
+        Input('batter-dropdown' , 'value') 
+    ]
+)
+def update_plot_season_wise_violin_plot( active_tab , selected_year , selected_battter ) : 
+    if active_tab != 'tab-batter':
+        return "" 
+    fig = plot_season_wise_violin_plot(match_data , ball_data , batter=selected_battter ) 
+    return html.Div([
+        html.H3("Season Wise Runs Violin plot"),
+        dcc.Graph(figure = fig)
+    ])
+
+@app.callback(
+    Output('plot-stadium-wise-runs' , 'children'),
+    [
+        Input('tabs' , 'value'),
+        Input('year-dropdown' , 'value') ,
+        Input('batter-dropdown' , 'value') 
+    ]
+)
+def update_plot_stadium_wise_runs(active_tab, selected_year , selected_batter ) :
+    if active_tab != 'tab-batter':
+        return ""
+    fig = stadium_wise_runs(match_data , ball_data , batter = selected_batter , season = selected_year) 
+    return html.Div([
+        html.H3("Stadium wise runs (top 5)") , 
+        dcc.Graph(figure=fig)
+    ])
+
+
+@app.callback(
+    Output('runs-distribution' , 'children'),
+    [
+        Input('tabs' , 'value'),
+        Input('year-dropdown' , 'value') ,
+        Input('batter-dropdown' , 'value') 
+    ]
+)
+def update_plot_runs_distribution(active_tab, selected_year , selected_batter ) :
+    if active_tab != 'tab-batter':
+        return ""
+    fig = plot_runs_distribution(match_data , ball_data , batter = selected_batter , season = selected_year) 
+    return html.Div([
+        html.H3("Runs distribution") , 
+        dcc.Graph(figure=fig)
+    ])
 
 if __name__ == '__main__':
     app.run_server(debug=True)

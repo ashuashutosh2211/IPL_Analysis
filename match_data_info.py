@@ -40,54 +40,55 @@ def get_most_time_winner(match_data ):
     }
     return data
 
+def get_all_batsman(ball_data): 
+    return list(ball_data['batter'].unique())
+
+def get_all_bowlers(ball_data):
+    return list(ball_data['bowler'].unique())
 
 def get_all_teams(match_data):
     return list(match_data['Team1'].unique()) 
 
-
-
-def get_stats(match_data , ball_data ,season = None ) : 
+def get_stats(match_data, ball_data, season=None):
     temp_match_data = match_data.copy()
-    temp_ball_data  = ball_data.copy() 
-    
-    if season != None : 
-        temp_match_data = temp_match_data[temp_match_data['Season'] == season ] 
-    match_ids = list(temp_match_data['ID'].unique())
-    matches_runs_inning1 = []
-    matches_runs_inning2 = []
-    matches_wickets_inning1 = []
-    matches_wickets_inning2 = []
-    matches_sixes = []
-    matches_fours = []
-    
-    for match_id in match_ids: 
-        runs_inning1 = temp_ball_data[(temp_ball_data['ID'] == match_id) & (temp_ball_data['innings'] == 1)]['total_run'].sum()
-        runs_inning2 = temp_ball_data[(temp_ball_data['ID'] == match_id) & (temp_ball_data['innings'] == 2)]['total_run'].sum() 
-        sixes = (temp_ball_data[(temp_ball_data['ID'] == match_id ) & (temp_ball_data['batsman_run'] == 6 )]['total_run'].sum() )//6
-        fours = (temp_ball_data[(temp_ball_data['ID'] == match_id ) & (temp_ball_data['batsman_run'] == 4 )]['total_run'].sum() )//4
-        wickets_inning1 = temp_ball_data[(temp_ball_data['ID'] == match_id) & (temp_ball_data['innings'] == 1) ]['isWicketDelivery'].sum()
-        wickets_inning2 = temp_ball_data[(temp_ball_data['ID'] == match_id) & (temp_ball_data['innings'] == 2)]['isWicketDelivery'].sum()
-        matches_runs_inning1.append(runs_inning1) 
-        matches_runs_inning2.append(runs_inning2) 
-        matches_wickets_inning1.append(wickets_inning1)
-        matches_wickets_inning2.append(wickets_inning2) 
-        
-        matches_sixes.append(sixes) 
-        matches_fours.append(fours)
+    temp_ball_data = ball_data.copy()
 
-    total_sixes = sum(matches_sixes)
-    total_fours = sum(matches_fours)
-    avg_inning1_score = sum(matches_runs_inning1)/len(matches_runs_inning1) 
-    avg_inning2_score = sum(matches_runs_inning2)/len(matches_runs_inning2) 
-    average_score = int((avg_inning1_score + avg_inning2_score)//2 )
+    if season is not None:
+        temp_match_data = temp_match_data[temp_match_data['Season'] == season]
+
+    match_ids = temp_match_data['ID'].unique()
+
+    innings_1_data = temp_ball_data[(temp_ball_data['ID'].isin(match_ids)) & (temp_ball_data['innings'] == 1)]
+    innings_2_data = temp_ball_data[(temp_ball_data['ID'].isin(match_ids)) & (temp_ball_data['innings'] == 2)]
+
+    innings_1_runs = innings_1_data.groupby('ID')['total_run'].sum()
+    innings_2_runs = innings_2_data.groupby('ID')['total_run'].sum()
+
+    innings_1_wickets = innings_1_data.groupby('ID')['isWicketDelivery'].sum()
+    innings_2_wickets = innings_2_data.groupby('ID')['isWicketDelivery'].sum()
+
+    innings_1_sixes = (innings_1_data[innings_1_data['batsman_run'] == 6].groupby('ID')['total_run'].sum() // 6).fillna(0)
+    innings_1_fours = (innings_1_data[innings_1_data['batsman_run'] == 4].groupby('ID')['total_run'].sum() // 4).fillna(0)
+
+    innings_2_sixes = (innings_2_data[innings_2_data['batsman_run'] == 6].groupby('ID')['total_run'].sum() // 6).fillna(0)
+    innings_2_fours = (innings_2_data[innings_2_data['batsman_run'] == 4].groupby('ID')['total_run'].sum() // 4).fillna(0)
+
+    total_sixes = innings_1_sixes.sum() + innings_2_sixes.sum()
+    total_fours = innings_1_fours.sum() + innings_2_fours.sum()
+
+    total_matches = len(match_ids)
+
+    average_inning1_score = innings_1_runs.mean()
+    average_inning2_score = innings_2_runs.mean()
+    average_score = int((average_inning1_score + average_inning2_score) / 2)
 
     data = {
-        'average_inning1_score' : avg_inning1_score , 
-        'average_inning2_score' : avg_inning2_score , 
-        'sixes' : total_sixes , 
-        'fours' : total_fours ,
-        'average_score' : average_score , 
-        'total_matches' : len(matches_runs_inning1) 
+        'average_inning1_score': average_inning1_score,
+        'average_inning2_score': average_inning2_score,
+        'sixes': total_sixes,
+        'fours': total_fours,
+        'average_score': average_score,
+        'total_matches': total_matches
     }
     return data
 
@@ -223,3 +224,88 @@ def get_top_bowlers(ball_data, match_data, team_name, season=None):
     best_wickets = best_bowler_data.iloc[0]['isWicketDelivery']
 
     return best_bowler, best_wickets
+def get_batter_runs( match_data , ball_data , batter , season = None ) : 
+    ball_data = ball_data.merge(match_data[['ID', 'Season', 'Team1', 'Team2']], on='ID', how='left')
+    ball_data['BowlingTeam'] = np.where(ball_data['BattingTeam'] != ball_data['Team1'], ball_data['Team1'], ball_data['Team2'])
+    if season != None :
+        ball_data = ball_data[ball_data['Season'] == season ] 
+    ball_data = ball_data[ball_data['batter'] == batter ].reset_index(drop = True )
+    total_runs = 0 
+    fours = 0 
+    sixes = 0 
+    dot_balls = 0 
+    dismissals = 0 
+    matches = len(ball_data['ID'].unique())
+    balls = 0 
+    run_123 = 0 
+    for i in range(len(ball_data)): 
+        total_runs += ball_data['batsman_run'][i] 
+        fours += ball_data['batsman_run'][i] == 4 
+        sixes += ball_data['batsman_run'][i] == 6
+        dismissals += ball_data['player_out'][i] == batter 
+        balls += 1 
+        dot_balls += ball_data['batsman_run'][i] == 0 
+        if ball_data['batsman_run'][i] > 0 and ball_data['batsman_run'][i] < 4 : 
+            run_123 += 1
+    strike_rate = '-'
+    if balls != 0 : 
+        strike_rate = round ((total_runs * 100 )/balls , 2 )
+    average = 'inf'
+    if dismissals != 0 : 
+        average = total_runs/dismissals
+    
+    fifties = 0 
+    hundreds = 0 
+    
+    match_runs = {} 
+    match_ids = list(ball_data['ID'].unique()) 
+    for match_id in match_ids : 
+        match_runs[match_id] = sum(ball_data[ball_data['ID'] == match_id]['batsman_run']) 
+        if match_runs[match_id] >= 100 : 
+            hundreds += 1 
+        elif match_runs[match_id] >= 50 : 
+            fifties += 1 
+    data = {
+        'total_runs' : total_runs , 
+        'fours' : fours , 
+        'sixes' : sixes , 
+        'strike_rate' : strike_rate , 
+        'dismissals' : dismissals , 
+        'balls' : balls , 
+        'matches' : matches , 
+        'hundreds' : hundreds , 
+        'fifties' : fifties ,
+        'average' : average , 
+        'dot_balls' : dot_balls,
+        'run123' : run_123
+    }
+    return data
+    
+# get_batter_runs(match_data , ball_data , "V Kohli" , season = 2022 )
+
+def get_bowler_wickets(match_data, ball_data, bowler, season=None):
+    ball_data = ball_data.merge(match_data[['ID', 'Season', 'Team1', 'Team2']], on='ID', how='left')
+    
+    if season is not None:
+        ball_data = ball_data[ball_data['Season'] == season] 
+    
+    ball_data = ball_data[ball_data['bowler'] == bowler].reset_index(drop=True)
+    
+    total_wickets = ball_data['player_out'].notnull().sum()
+    total_runs_given = ball_data['total_run'].sum()
+    total_balls_bowled = len(ball_data)
+    economy_rate = (total_runs_given / total_balls_bowled) * 6
+    if total_wickets != 0:
+        average = total_runs_given / total_wickets
+    else:
+        average = None
+    
+    data = {
+        'total_wickets': total_wickets,
+        'total_runs_given': total_runs_given,
+        'total_balls_bowled': total_balls_bowled,
+        'economy_rate': economy_rate,
+        'average': average
+    }
+    return data
+# get_bowler_wickets(match_data , ball_data , bowler = "Mohammed Shami" , season = 2022 )
