@@ -120,10 +120,11 @@ app.layout = html.Div([
             html.Div(id = 'plot-matches-by-team'),
         ] , width=6 )
     ]),
-    html.Div(
-        [dcc.Dropdown(id='batter-dropdown')],
-        style={'display': 'none'}  
-    ),
+    # html.Div(
+    #     [dcc.Dropdown(id='batsman-dropdown')],
+    #     style={'display': 'none'}  
+    # ),
+    html.Div([dcc.Dropdown(id='batsman-dropdown')], style={'display': 'none'}),
 
     dbc.Row([
         dbc.Col(html.Div(id='batter-runs'),width = 2 ),
@@ -393,7 +394,7 @@ def render_content(tab):
             html.Div([
                 html.Label("Select Batsman"),
                 dcc.Dropdown(
-                    id='batter-dropdown',
+                    id='batsman-dropdown',
                     options=[
                         {'label': team, 'value': team} for team in get_all_batsman(ball_data)
                     ],
@@ -888,7 +889,7 @@ def update_plot_matches_by_team(selected_year , selected_team ) :
     Output('batter-runs' , 'children') , 
     [Input('tabs', 'value'),
         Input('year-dropdown' , 'value') , 
-     Input('batter-dropdown' , 'value')] 
+     Input('batsman-dropdown' , 'value')] 
 )
 def update_batter_runs(active_tab , selected_year , selected_batter ) : 
     if active_tab != 'tab-batter':
@@ -905,7 +906,7 @@ def update_batter_runs(active_tab , selected_year , selected_batter ) :
     Output('batter-fours' , 'children'),
     [Input('tabs', 'value'),
         Input('year-dropdown' , 'value') , 
-        Input('batter-dropdown' , 'value') 
+        Input('batsman-dropdown' , 'value') 
     ]
 )
 def update_batter_fours(active_tab , selected_year , selected_batter ) : 
@@ -923,7 +924,7 @@ def update_batter_fours(active_tab , selected_year , selected_batter ) :
     Output('batter-sixes' , 'children'),
     [Input('tabs', 'value'),
         Input('year-dropdown' , 'value') , 
-        Input('batter-dropdown' , 'value') 
+        Input('batsman-dropdown' , 'value') 
     ]
 )
 def update_batter_sixes(active_tab, selected_year , selected_batter ) : 
@@ -941,7 +942,7 @@ def update_batter_sixes(active_tab, selected_year , selected_batter ) :
     Output('batter-av-sr' , 'children') , 
     [Input('tabs' , 'value') ,
      Input('year-dropdown' , 'value'),
-     Input('batter-dropdown' , 'value')] 
+     Input('batsman-dropdown' , 'value')] 
 )
 def update_batter_av_sr(active_tab , selected_year , selected_batter ) : 
     if active_tab != 'tab-batter':
@@ -963,7 +964,7 @@ def update_batter_av_sr(active_tab , selected_year , selected_batter ) :
     Output('batter-hundred' , 'children') , 
     [Input('tabs' , 'value'),
      Input('year-dropdown' , 'value'),
-     Input('batter-dropdown' , 'value')] 
+     Input('batsman-dropdown' , 'value')] 
 )
 def update_batter_hundred(active_tab , selected_year , selected_batter ):
     if active_tab != 'tab-batter':
@@ -981,7 +982,7 @@ def update_batter_hundred(active_tab , selected_year , selected_batter ):
     Output('batter-fifty' , 'children') , 
     [Input('tabs' , 'value'),
      Input('year-dropdown' , 'value'),
-     Input('batter-dropdown' , 'value')] 
+     Input('batsman-dropdown' , 'value')] 
 )
 def update_batter_fifty(active_tab , selected_year , selected_batter ):
     if active_tab != 'tab-batter':
@@ -999,7 +1000,7 @@ def update_batter_fifty(active_tab , selected_year , selected_batter ):
     Output('plot-batter-dismissals' , 'children'), 
     [Input('tabs' , 'value'),
         Input('year-dropdown' , 'value') ,
-        Input('batter-dropdown' , 'value') 
+        Input('batsman-dropdown' , 'value') 
     ]
 )
 def update_plot_batter_dismissals(active_tab , selected_year , selected_batter ) : 
@@ -1016,7 +1017,7 @@ def update_plot_batter_dismissals(active_tab , selected_year , selected_batter )
     Output('plot-runs-scored-against-bowlers' , 'children') , 
     [Input('tabs' , 'value'),
         Input('year-dropdown' , 'value') ,
-        Input('batter-dropdown' , 'value') 
+        Input('batsman-dropdown' , 'value') 
     ]
 )
 def update_plot_runs_scored_against_bowler(active_tab , selected_year , selected_batter ) : 
@@ -1035,7 +1036,7 @@ def update_plot_runs_scored_against_bowler(active_tab , selected_year , selected
     [
         Input('tabs' , 'value'),
         Input('year-dropdown' , 'value') ,
-        Input('batter-dropdown' , 'value') 
+        Input('batsman-dropdown' , 'value') 
     ]
 )
 def update_plot_runs(active_tab , selected_year , selected_batter ) : 
@@ -1053,7 +1054,7 @@ def update_plot_runs(active_tab , selected_year , selected_batter ) :
     [
         Input('tabs' , 'value'),
         Input('year-dropdown' , 'value') ,
-        Input('batter-dropdown' , 'value') 
+        Input('batsman-dropdown' , 'value') 
     ]
 )
 def update_plot_season_wise_violin_plot( active_tab , selected_year , selected_battter ) : 
@@ -1070,7 +1071,7 @@ def update_plot_season_wise_violin_plot( active_tab , selected_year , selected_b
     [
         Input('tabs' , 'value'),
         Input('year-dropdown' , 'value') ,
-        Input('batter-dropdown' , 'value') 
+        Input('batsman-dropdown' , 'value') 
     ]
 )
 def update_plot_stadium_wise_runs(active_tab, selected_year , selected_batter ) :
@@ -1088,7 +1089,8 @@ def update_plot_stadium_wise_runs(active_tab, selected_year , selected_batter ) 
     [
         Input('tabs' , 'value'),
         Input('year-dropdown' , 'value') ,
-        Input('batter-dropdown' , 'value') 
+        Input('batsman-dropdown' , 'value') ,
+        
     ]
 )
 def update_plot_runs_distribution(active_tab, selected_year , selected_batter ) :
