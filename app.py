@@ -27,7 +27,7 @@ with open('teams_score_data.json') as file:
     teams_scores_data = json.load(file)
 
 external_stylesheets = [dbc.themes.BOOTSTRAP]
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+app = dash.Dash(__name__, external_stylesheets=external_stylesheets ,  suppress_callback_exceptions=True )
 
 app.layout = html.Div([
     html.H1("IPL Analysis Dashboard", style={'textAlign': 'center'}),
@@ -1103,4 +1103,4 @@ def update_plot_runs_distribution(active_tab, selected_year , selected_batter ) 
     ])
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=False ,)
