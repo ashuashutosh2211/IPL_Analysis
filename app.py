@@ -33,25 +33,59 @@ external_stylesheets = [dbc.themes.BOOTSTRAP]
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets , suppress_callback_exceptions=True  )
 
 app.layout = html.Div([
-    html.H1("IPL Data Analysis", style={'textAlign': 'center'}),
+    html.H1("IPL Analysis Dashboard", 
+    style={
+        'textAlign': 'center',
+        'background-color': '#223577',
+        'color': 'white',
+        'padding': '10px'  # optional: adds some padding for better appearance
+    }
+),
+    html.Div(
+    dcc.Tabs(
+        id='tabs', 
+        value='tab-home', 
+        children=[
+        dcc.Tab(label='Home', value='tab-home', 
+                selected_style={'backgroundColor': '#0b1434c9'}, 
+                style={'backgroundColor': '#223577c9'}),
+        dcc.Tab(label='Teams', value='tab-teams', 
+                selected_style={'backgroundColor': '#0b1434c9'}, 
+                style={'backgroundColor': '#223577c9'}),
+        dcc.Tab(label='Batsman', value='tab-batter', 
+                selected_style={'backgroundColor': '#0b1434c9'}, 
+                style={'backgroundColor': '#223577c9'}),
+        dcc.Tab(label='Bowler', value='tab-bowler', 
+                selected_style={'backgroundColor': '#0b1434c9'}, 
+                style={'backgroundColor': '#223577c9'})
+        # Add more tabs here as needed
+    ],
+        style={
+            'font-size': '25px', 
+            'color': 'white',            # Text color of the tabs
+            'font-weight': 'bold' ,
+            # Font size 0.75 times of the heading
+        },
+              # Bold text
+        
+        parent_style={
+            'width': '100%'  # Width of the tab container
+        }
+    ),
+    style={'margin': '0 10px'}  # Left and right margin of 10px
+),
     
-    dcc.Tabs(id='tabs', value='tab-home', children=[
-        dcc.Tab(label='Home', value='tab-home'),
-        dcc.Tab(label='Teams', value='tab-teams'),
-        dcc.Tab(label='Batsman', value='tab-batter'), 
-        dcc.Tab(label = 'Bowler' , value = 'tab-bowler') ,
-    ]),
     
     html.Div([
-        html.Label("Select Season"),
+        html.Label("Select Season", style={'font-weight': 'bold', 'margin-left': '10px'}),
         dcc.Dropdown(
             id='year-dropdown',
             options=[
                 {'label': str(year), 'value': year} for year in range(2008, 2023)
             ],
+            style={'width': '100%'}  # Setting the width of the dropdown to 50%
         )
-    ], style={'width': '20%', 'display': 'inline-block', 'verticalAlign': 'top'}),
-    
+    ], style={'display': 'inline-block', 'verticalAlign': 'top', 'margin-left': '10px'}),
     html.Div(id='tabs-content') , 
     
     html.Div(id='selected-season'),
@@ -326,7 +360,7 @@ def render_content(tab):
                                     html.Div(html.Img(src='assets/trophy_logo.png', style={'height': '100px', 'width': '100px'})),
                                 ]),
                                 dbc.Col([
-                                    html.H4("Title Winner"),
+                                    html.H4("Title Winner", style={'font-size': '22px', 'font-weight': 'bold'}),
                                     html.Div(id='trophy-winner-info')
                                 ])
                             ])
@@ -341,7 +375,7 @@ def render_content(tab):
                                     html.Div(html.Img(src='assets/orange_cap.png', style={'height': '80px', 'width': '140px'})),
                                 ]),
                                 dbc.Col([
-                                    html.H4("Orange Cap"),
+                                    html.H4("Orange Cap", style={'font-size': '22px', 'font-weight': 'bold'}),
                                     html.Div(id='orange-cap-winner-info')
                                 ])
                             ]),
@@ -356,7 +390,7 @@ def render_content(tab):
                                     html.Div(html.Img(src='assets/purple_cap.png', style={'height': '80px', 'width': '140px'})),
                                 ]),
                                 dbc.Col([
-                                    html.H4("Purple Cap"),
+                                    html.H4("Purple Cap", style={'font-size': '22px', 'font-weight': 'bold'}),
                                     html.Div(id='purple-cap-winner-info')
                                 ])
                             ]),
@@ -380,11 +414,14 @@ def render_content(tab):
                 ], width=3)
             ]),
             dbc.Row([
-                html.H2("Analysis based on toss wins"),
+                html.H2("Analysis based on toss wins",style={
+                    'textAlign': 'center',
+                    'padding': '10px'  # optional: adds some padding for better appearance
+    }),
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H4("Matches Won by Toss Decision") , 
+                            html.H4("Matches Won by Toss Decision", style={'font-size': '22px', 'font-weight': 'bold'}) , 
                             html.Div(id='matches-by-toss-decision-plot'),
                         ])
                     ])
@@ -392,7 +429,7 @@ def render_content(tab):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H4("Outcomes of Toss Wins: Matches Won vs. Matches Lost") ,
+                            html.H4("Outcomes of Toss Wins: Matches Won vs. Matches Lost", style={'font-size': '22px', 'font-weight': 'bold'}) ,
                             html.Div(id = "outcome-toss-wins")
                         ])
                     ])
@@ -400,7 +437,7 @@ def render_content(tab):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H4("Tosses Won by Teams") , 
+                            html.H4("Tosses Won by Teams", style={'font-size': '22px', 'font-weight': 'bold'}) , 
                             html.Div(id = "toss-won-by-teams")
                         ])
                     ])
@@ -408,11 +445,14 @@ def render_content(tab):
                 
             ]),
             dbc.Row([
-                html.H2("Analysis based on team performance"),
+                html.H2("Analysis based on team performance",style={
+                    'textAlign': 'center',
+                    'padding': '10px'  # optional: adds some padding for better appearance
+    }),
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H4("Teams Overall Performance") ,
+                            html.H4("Teams Overall Performance", style={'font-size': '22px', 'font-weight': 'bold'}) ,
                             html.Div(id='team-performance-plot'),
                         ])
                     ])
@@ -420,18 +460,21 @@ def render_content(tab):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H4("Matches Won and Lost by Teams"),
+                            html.H4("Matches Won and Lost by Teams", style={'font-size': '22px', 'font-weight': 'bold'}),
                             html.Div(id='matches-won-by-teams-plot')
                         ])
                     ])
                 ], width=6)
             ]) , 
             dbc.Row([
-                html.H2("Analysis of runs and wickets by balls and overs"),
+                html.H2("Analysis of runs and wickets by balls and overs",style={
+                    'textAlign': 'center',
+                    'padding': '10px'  # optional: adds some padding for better appearance
+    }),
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H4("Runs") ,
+                            html.H4("Runs", style={'font-size': '22px', 'font-weight': 'bold'}) ,
                             html.Div(id='runs-heatmap'),
                         ])
                     ])
@@ -439,7 +482,7 @@ def render_content(tab):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H4("Wickets") ,
+                            html.H4("Wickets", style={'font-size': '22px', 'font-weight': 'bold'}) ,
                             html.Div(id='wickets-heatmap'),
                         ])
                     ])
@@ -449,7 +492,7 @@ def render_content(tab):
     elif tab == 'tab-teams':
         return html.Div([
             html.Div([
-                html.Label("Select Team"),
+                html.Label("Select Team", style={'font-weight': 'bold', 'margin-left': '10px'}),
                 dcc.Dropdown(
                     id='team-dropdown',
                     options=[
@@ -483,7 +526,7 @@ def render_content(tab):
                                     html.Div(html.Img(src='assets/orange_cap.png', style={'height': '80px', 'width': '140px'})),
                                 ]),
                                 dbc.Col([
-                                    html.H4("Most Runs"),
+                                    html.H4("Most Runs", style={'font-size': '22px', 'font-weight': 'bold'}),
                                     html.Div(id='team-most-runs')
                                 ])
                             ]),
@@ -498,7 +541,7 @@ def render_content(tab):
                                     html.Div(html.Img(src='assets/purple_cap.png', style={'height': '80px', 'width': '140px'})),
                                 ]),
                                 dbc.Col([
-                                    html.H4("Most Wickets"),
+                                    html.H4("Most Wickets", style={'font-size': '22px', 'font-weight': 'bold'}),
                                     html.Div(id='team-most-wickets')
                                 ])
                             ]),
@@ -525,7 +568,7 @@ def render_content(tab):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H4("Toss won v/s lost ") , 
+                            html.H4("Toss won v/s lost ", style={'font-size': '22px', 'font-weight': 'bold'}) , 
                             html.Div(id = "plot-toss-outcome-team")
                         ])
                     ])
@@ -533,7 +576,7 @@ def render_content(tab):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H4("Win by Toss Decision") , 
+                            html.H4("Win by Toss Decision", style={'font-size': '22px', 'font-weight': 'bold'}) , 
                             html.Div(id='toss-decision-plot'),
                         ])
                     ])
@@ -541,7 +584,7 @@ def render_content(tab):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H4("Outcome when won the Toss") ,
+                            html.H4("Outcome when won the Toss", style={'font-size': '22px', 'font-weight': 'bold'}) ,
                             html.Div(id = "team-outcome-toss-win") , 
                         ])
                     ])
@@ -551,11 +594,14 @@ def render_content(tab):
                 
             ]),
             dbc.Row([
-                html.H2("Top Performers"),
+                html.H2("Top Performers",style={
+                    'textAlign': 'center',
+                    'padding': '10px'  # optional: adds some padding for better appearance
+    }),
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H4("Batsman"),
+                            html.H4("Batsman", style={'font-size': '22px', 'font-weight': 'bold'}),
                             html.Div(id='top-batsmen-plot'),
                         ])
                     ])
@@ -563,7 +609,7 @@ def render_content(tab):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H4("Bowler"),
+                            html.H4("Bowler", style={'font-size': '22px', 'font-weight': 'bold'}),
                             html.Div(id='top-bowlers-plot'),
                         ])
                     ])
@@ -573,7 +619,7 @@ def render_content(tab):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H4("Stadium-wise Wins"),
+                            html.H4("Stadium-wise Wins", style={'font-size': '22px', 'font-weight': 'bold'}),
                             html.Div(id='stadium-matches-plot'),
                         ])
                     ])
@@ -582,7 +628,7 @@ def render_content(tab):
                 dbc.Col([ 
                     dbc.Card([
                         dbc.CardBody([
-                            html.H4("Wins/Losses against opponents"),
+                            html.H4("Wins/Losses against opponents", style={'font-size': '22px', 'font-weight': 'bold'}),
                             html.Div(id = 'plot-matches-by-team'),
                         ])
                     ]),
@@ -593,7 +639,7 @@ def render_content(tab):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H4("Batsman Strike rate v/s Average") ,
+                            html.H4("Batsman Strike rate v/s Average", style={'font-size': '22px', 'font-weight': 'bold'}) ,
                             html.Div(id = "plot-average-vs-strike_rate-batsman")
                         ])
                     ])
@@ -601,18 +647,21 @@ def render_content(tab):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H4("Bowler Economy v/s Average") ,
+                            html.H4("Bowler Economy v/s Average", style={'font-size': '22px', 'font-weight': 'bold'}) ,
                             html.Div(id = "plot-economy-vs-average-bowler")
                         ])
                     ])
                 ] , width=6)
             ]),
             dbc.Row([
-                html.H2("Analysis of runs and wickets by balls and overs"),
+                html.H2("Analysis of runs and wickets by balls and overs",style={
+                    'textAlign': 'center',
+                    'padding': '10px'  # optional: adds some padding for better appearance
+    }),
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H4("Runs") ,
+                            html.H4("Runs", style={'font-size': '22px', 'font-weight': 'bold'}) ,
                             html.Div(id='team-runs-heatmap'),
                         ])
                     ])
@@ -620,7 +669,7 @@ def render_content(tab):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H4("Wickets") ,
+                            html.H4("Wickets", style={'font-size': '22px', 'font-weight': 'bold'}) ,
                             html.Div(id='team-wickets-heatmap'),
                         ])
                     ])
@@ -631,7 +680,7 @@ def render_content(tab):
     elif tab == 'tab-batter':
         return html.Div([
             html.Div([
-                html.Label("Select Batsman"),
+                html.Label("Select Batsman", style={'font-weight': 'bold', 'margin-left': '10px'}),
                 dcc.Dropdown(
                     id='batsman-dropdown',
                     options=[
@@ -733,7 +782,7 @@ def render_content(tab):
                 dbc.Col([ 
                     dbc.Card([
                         dbc.CardBody([
-                            html.H3("Runs distribution") , 
+                            html.H4("Runs distribution", style={'font-size': '22px', 'font-weight': 'bold'}) , 
                             html.Div(id = 'runs-distribution'),
                         ])
                     ]),
@@ -743,7 +792,7 @@ def render_content(tab):
                 dbc.Col([ 
                     dbc.Card([
                         dbc.CardBody([
-                            html.H3("Runs by Over type") , 
+                            html.H4("Runs by Over type", style={'font-size': '22px', 'font-weight': 'bold'}) , 
                             html.Div(id = 'runs-scored-by-over-type'),
                         ])
                     ]),
@@ -754,7 +803,7 @@ def render_content(tab):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H4("Most Dismissals against Bowlers"),
+                            html.H4("Most Dismissals against Bowlers", style={'font-size': '22px', 'font-weight': 'bold'}),
                             html.Div(id='plot-batter-dismissals'),
                         ])
                     ])
@@ -763,7 +812,7 @@ def render_content(tab):
                 dbc.Col([ 
                     dbc.Card([
                         dbc.CardBody([
-                            html.H4("Most Runs Scored against bowlers"),
+                            html.H4("Most Runs Scored against bowlers", style={'font-size': '22px', 'font-weight': 'bold'}),
                             html.Div(id = 'plot-runs-scored-against-bowlers'),
                         ])
                     ]),
@@ -775,7 +824,7 @@ def render_content(tab):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H3("Stadium wise runs") , 
+                            html.H4("Stadium wise runs", style={'font-size': '22px', 'font-weight': 'bold'}) , 
                             html.Div(id='plot-stadium-wise-runs'),
                         ])
                     ])
@@ -783,7 +832,7 @@ def render_content(tab):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H3("Runs against teams") , 
+                            html.H4("Runs against teams", style={'font-size': '22px', 'font-weight': 'bold'}) , 
                             html.Div(id='plot-runs-scored-against-teams'),
                         ])
                     ])
@@ -800,7 +849,7 @@ def render_content(tab):
                     dbc.Col([
                         dbc.Card([
                             dbc.CardBody([
-                                html.H3("Runs distribution across overs"),
+                                html.H4("Runs distribution across overs", style={'font-size': '22px', 'font-weight': 'bold'}),
                                 html.Div(id = "plot-runs-heatmap-batter")
                             ])
                         ])
@@ -812,7 +861,7 @@ def render_content(tab):
     elif tab == 'tab-bowler':
         return html.Div([
             html.Div([
-                html.Label("Select Bowler"),
+                html.Label("Select Bowler", style={'font-weight': 'bold', 'margin-left': '10px'}),
                 dcc.Dropdown(
                     id='bowler-dropdown',
                     options=[
@@ -831,7 +880,7 @@ def render_content(tab):
                                     html.Div(html.Img(src='assets\wicket.png', style={'height': '74px', 'width': '70px'})),
                                 ]),
                                 dbc.Col([
-                                    html.H3("Wickets"),
+                                    html.H4("Wickets", style={'font-size': '22px', 'font-weight': 'bold'}),
                                     html.Div(id='bowler-wickets')
                                 ])
                             ])
@@ -846,7 +895,7 @@ def render_content(tab):
                             #         html.Div(html.Img(src='assets/sixes.png', style={'height': '80px', 'width': '80px'})),
                             #     ]),
                             #     dbc.Col([
-                            html.H3("Average") , 
+                            html.H4("Average", style={'font-size': '22px', 'font-weight': 'bold'}) , 
                             html.Div(id='bowler-average')
                             #     ])
                             # ]),
@@ -857,7 +906,7 @@ def render_content(tab):
                     dbc.Card([
                         dbc.CardBody([
                             
-                            html.H3("Economy"),
+                            html.H4("Economy", style={'font-size': '22px', 'font-weight': 'bold'}),
                             html.Div(id='bowler-economy-rate')
                                 
                         ])
@@ -866,7 +915,7 @@ def render_content(tab):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H3("Strike Rate") , 
+                            html.H4("Strike Rate", style={'font-size': '22px', 'font-weight': 'bold'}) , 
                             html.Div(id="bowler-strike-rate")
                               
                         ])
@@ -875,7 +924,7 @@ def render_content(tab):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H3("Matches") , 
+                            html.H4("Matches", style={'font-size': '22px', 'font-weight': 'bold'}) , 
                             html.Div(id="bowler-matches")
                         ])
                     ])
@@ -883,7 +932,7 @@ def render_content(tab):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H3("Runs Conceded") , 
+                            html.H4("Runs Conceded", style={'font-size': '22px', 'font-weight': 'bold'}) , 
                             html.Div(id="runs-given")
                                
                         ])
@@ -895,7 +944,7 @@ def render_content(tab):
                 dbc.Col([ 
                     dbc.Card([
                         dbc.CardBody([
-                            html.H3("Bowling Distribution") , 
+                            html.H4("Bowling Distribution", style={'font-size': '22px', 'font-weight': 'bold'}) , 
                             html.Div(id = 'bowling-distribution'),
                         ])
                     ]),
@@ -905,7 +954,7 @@ def render_content(tab):
                 dbc.Col([ 
                     dbc.Card([
                         dbc.CardBody([
-                            html.H3("Runs by Over type") , 
+                            html.H4("Runs by Over type", style={'font-size': '22px', 'font-weight': 'bold'}) , 
                             html.Div(id = 'wickets-taken-by-over-type'),
                         ])
                     ]),
@@ -916,7 +965,7 @@ def render_content(tab):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H4("Most wickets taken of batsman"),
+                            html.H4("Most wickets taken of batsman", style={'font-size': '22px', 'font-weight': 'bold'}),
                             html.Div(id='plot-bowler-wickets'),
                         ])
                     ])
@@ -925,7 +974,7 @@ def render_content(tab):
                 dbc.Col([ 
                     dbc.Card([
                         dbc.CardBody([
-                            html.H4("Most runs conceded to batsman"),
+                            html.H4("Most runs conceded to batsman", style={'font-size': '22px', 'font-weight': 'bold'}),
                             html.Div(id = 'plot-bowler-most-beaten-by-batsman'),
                         ])
                     ]),
@@ -1074,7 +1123,7 @@ def update_stats_info(selected_year):
         sixes = stats['sixes'] 
         fours = stats['fours'] 
         return html.Div([
-            html.H5(f"Total Matches {stats['total_matches']}"),
+            html.H4(f"Total Matches {stats['total_matches']}", style={'font-size': '22px', 'font-weight': 'bold'}),
             html.P(f"Average Score {average_score}") ,
             html.P(f"6s : {sixes if sixes < 1000 else str(round(sixes/1000 , 2)) + 'k'} 4s : {fours if fours < 1000 else str(round(fours/1000)) + 'k'}")
         ])
@@ -1128,7 +1177,7 @@ def update_matches_won_by_teams(selected_year):
 )
 def update_team_select_info(active_tab , selected_year , selected_team ) : 
     if active_tab == 'tab-teams':
-        return html.H3(f"{selected_team}")
+        return html.H4(f"{selected_team}", style={'font-size': '22px', 'font-weight': 'bold'})
     else:
         return "" 
 
@@ -1208,7 +1257,7 @@ def update_team_trophy_winner_info(active_tab, selected_year, selected_team):
         #     titles = len(match_data[(match_data['MatchNumber'] == 'Final') & (match_data['WinningTeam'] == selected_team) & (match_data['Season'] == selected_year)])
 
         return html.Div(
-            [html.H3("Titles"),
+            [html.H3("Titles", style={'font-size': '22px', 'font-weight': 'bold'}),
             html.H4(f"{titles}")]
         )
        
@@ -1230,7 +1279,7 @@ def update_team_most_runs(active_tab, selected_year, selected_team):
         try:
             best_batsman , best_score = get_top_batsman(ball_data , match_data , team_name=selected_team , season = selected_year) 
             return html.Div(
-                [html.H3(f"{best_batsman}"),
+                [html.H3(f"{best_batsman}", style={'font-size': '22px', 'font-weight': 'bold'}),
                 html.H4(f"{best_score}") , 
                 ]
             )
@@ -1253,7 +1302,7 @@ def update_team_most_wickets(active_tab, selected_year, selected_team):
         try:
             best_bowler , best_wickets = get_top_bowlers(ball_data , match_data , team_name=selected_team , season = selected_year) 
             return html.Div(
-                [html.H3(f"{best_bowler}"),
+                [html.H3(f"{best_bowler}", style={'font-size': '22px', 'font-weight': 'bold'}),
                 html.H4(f"{best_wickets}") , 
                 ]
             )
@@ -1470,8 +1519,8 @@ def update_batter_runs(active_tab , selected_year , selected_batter ) :
         selected_batter == "V Kohli"
     data = get_batter_runs(match_data , ball_data , batter= selected_batter , season = selected_year) 
     return html.Div([
-        html.H3("Runs"),
-        html.H3(f"{data['total_runs']}")
+        html.H4("Runs", style={'font-size': '22px', 'font-weight': 'bold'}),
+        html.P(f"{data['total_runs']}")
     ])
 
 @app.callback(
@@ -1488,7 +1537,7 @@ def update_batter_fours(active_tab , selected_year , selected_batter ) :
         selected_batter == "V Kohli"
     data = get_batter_runs(match_data , ball_data , batter= selected_batter , season = selected_year) 
     return html.Div([
-        html.H2(f"{data['fours']}")
+        html.H4(f"{data['fours']}", style={'font-size': '22px', 'font-weight': 'bold'})
     ])
 
 
@@ -1506,7 +1555,7 @@ def update_batter_sixes(active_tab, selected_year , selected_batter ) :
         selected_batter == "V Kohli"
     data = get_batter_runs(match_data , ball_data , batter= selected_batter , season = selected_year) 
     return html.Div([
-        html.H2(f"{data['sixes']}")
+        html.H4(f"{data['sixes']}", style={'font-size': '22px', 'font-weight': 'bold'})
     ])
 
 
@@ -1528,8 +1577,8 @@ def update_batter_av_sr(active_tab , selected_year , selected_batter ) :
     else : 
         average = round(average , 2 )
     return html.Div([
-        html.H5(f"SR {data['strike_rate']}"),
-        html.H5(f"Av {average}")
+        html.H4(f"SR {data['strike_rate']}", style={'font-size': '22px', 'font-weight': 'bold'}),
+        html.H4(f"Av {average}", style={'font-size': '22px', 'font-weight': 'bold'})
     ])
 
 @app.callback(
@@ -1545,7 +1594,7 @@ def update_batter_hundred(active_tab , selected_year , selected_batter ):
         selected_batter == "V Kohli"
     data = get_batter_runs(match_data , ball_data , batter=selected_batter , season=selected_year) 
     return html.Div([
-        html.H2(f"{data['hundreds']}")
+        html.H4(f"{data['hundreds']}", style={'font-size': '22px', 'font-weight': 'bold'})
 
     ])
 
@@ -1563,7 +1612,7 @@ def update_batter_fifty(active_tab , selected_year , selected_batter ):
         selected_batter == "V Kohli"
     data = get_batter_runs(match_data , ball_data , batter=selected_batter , season=selected_year) 
     return html.Div([
-        html.H2(f"{data['fifties']}")
+        html.H4(f"{data['fifties']}", style={'font-size': '22px', 'font-weight': 'bold'})
 
     ])
 
@@ -1625,7 +1674,7 @@ def update_plot_runs(active_tab , selected_year , selected_batter ) :
     if selected_year == None : 
         title = "Runs scored season wise"
     return html.Div([
-        html.H3(f"{title}"),
+        html.H4(f"{title}", style={'font-size': '22px', 'font-weight': 'bold'}),
         dcc.Graph(figure=fig)
     ])
 
@@ -1750,7 +1799,7 @@ def update_bowler_wickets(active_tab , selected_year , selected_bowler ) :
     if active_tab != 'tab-bowler' :
         return ""
     data = get_bowler_wickets(match_data=match_data , ball_data = ball_data , bowler=selected_bowler , season = selected_year)
-    return html.H3(f"{data['total_wickets']}")
+    return html.H4(f"{data['total_wickets']}", style={'font-size': '22px', 'font-weight': 'bold'})
 
 
 
@@ -1766,7 +1815,7 @@ def update_bowler_wickets(active_tab , selected_year , selected_bowler ) :
     if active_tab != 'tab-bowler' :
         return ""
     data = get_bowler_wickets(match_data=match_data , ball_data = ball_data , bowler=selected_bowler , season = selected_year)
-    return html.H3(f"{data['average']}")
+    return html.H4(f"{data['average']}", style={'font-size': '22px', 'font-weight': 'bold'})
 
 
 @app.callback(
@@ -1781,7 +1830,7 @@ def update_bowler_wickets(active_tab , selected_year , selected_bowler ) :
     if active_tab != 'tab-bowler' :
         return ""
     data = get_bowler_wickets(match_data=match_data , ball_data = ball_data , bowler=selected_bowler , season = selected_year)
-    return html.H3(f"{data['economy_rate']}")
+    return html.H4(f"{data['economy_rate']}", style={'font-size': '22px', 'font-weight': 'bold'})
 
 
 
@@ -1797,7 +1846,7 @@ def update_bowler_wickets(active_tab , selected_year , selected_bowler ) :
     if active_tab != 'tab-bowler' :
         return ""
     data = get_bowler_wickets(match_data=match_data , ball_data = ball_data , bowler=selected_bowler , season = selected_year)
-    return html.H3(f"{data['strike_rate']}")
+    return html.H4(f"{data['strike_rate']}", style={'font-size': '22px', 'font-weight': 'bold'})
 
 
 @app.callback(
@@ -1812,7 +1861,7 @@ def update_bowler_wickets(active_tab , selected_year , selected_bowler ) :
     if active_tab != 'tab-bowler' :
         return ""
     data = get_bowler_wickets(match_data=match_data , ball_data = ball_data , bowler=selected_bowler , season = selected_year)
-    return html.H3(f"{data['matches']}")
+    return html.H4(f"{data['matches']}", style={'font-size': '22px', 'font-weight': 'bold'})
 
 
 
@@ -1829,7 +1878,7 @@ def update_bowler_wickets(active_tab , selected_year , selected_bowler ) :
     if active_tab != 'tab-bowler' :
         return ""
     data = get_bowler_wickets(match_data=match_data , ball_data = ball_data , bowler=selected_bowler , season = selected_year)
-    return html.H3(f"{data['total_runs_given']}")
+    return html.H4(f"{data['total_runs_given']}", style={'font-size': '22px', 'font-weight': 'bold'})
 
 
 @app.callback(
