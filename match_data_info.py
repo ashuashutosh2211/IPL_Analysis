@@ -282,7 +282,6 @@ def get_batter_runs( match_data , ball_data , batter , season = None ) :
     return data
     
 # get_batter_runs(match_data , ball_data , "V Kohli" , season = 2022 )
-
 def get_bowler_wickets(match_data, ball_data, bowler, season=None):
     ball_data = ball_data.merge(match_data[['ID', 'Season', 'Team1', 'Team2']], on='ID', how='left')
     
@@ -290,22 +289,31 @@ def get_bowler_wickets(match_data, ball_data, bowler, season=None):
         ball_data = ball_data[ball_data['Season'] == season] 
     
     ball_data = ball_data[ball_data['bowler'] == bowler].reset_index(drop=True)
-    
+    matches = len(ball_data['ID'].unique())
     total_wickets = ball_data['player_out'].notnull().sum()
     total_runs_given = ball_data['total_run'].sum()
     total_balls_bowled = len(ball_data)
-    economy_rate = (total_runs_given / total_balls_bowled) * 6
+    economy_rate = '-'
+    if total_balls_bowled > 0 : 
+        economy_rate = (total_runs_given / total_balls_bowled) * 6
+        economy_rate = round(economy_rate , 2 )
+    average = '-'
     if total_wickets != 0:
         average = total_runs_given / total_wickets
+        average = round(average , 2 )
     else:
-        average = None
-    
+        average = '-'
+    strike_rate = '-'
+    if total_wickets != 0 : 
+        strike_rate = total_balls_bowled / total_wickets 
+        strike_rate = round(strike_rate , 2 )
     data = {
         'total_wickets': total_wickets,
         'total_runs_given': total_runs_given,
         'total_balls_bowled': total_balls_bowled,
         'economy_rate': economy_rate,
-        'average': average
+        'average': average , 
+        'strike_rate' : strike_rate ,
+        'matches' : matches 
     }
     return data
-# get_bowler_wickets(match_data , ball_data , bowler = "Mohammed Shami" , season = 2022 )

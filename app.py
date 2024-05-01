@@ -2,13 +2,16 @@
 from dash import Dash, dcc, html, Input, Output
 import dash
 import dash_bootstrap_components as dbc
+import plotly.express as px
 import numpy as np
 import pandas as pd
 import preprocess_match_data
 import match_data_info
-from match_data_info import get_most_time_winner, get_all_teams , get_winner , get_stats , get_scores_data , get_top_batsman , get_top_bowlers , get_all_batsman , get_batter_runs
+from match_data_info import get_most_time_winner, get_all_teams , get_winner , get_stats , get_scores_data , get_top_batsman , get_top_bowlers , get_all_batsman , get_batter_runs , get_all_bowlers , get_bowler_wickets 
 from match_data_plots import plot_match_won_by_toss_decision, plot_team_performance, plot_percentage_matches_won_and_lost_by_teams, best_batsmen , plot_top_5_batsmen, top_bowlers, plot_top_5_bowlers ,plot_stadium_matches_for_team , plot_matches_by_team
-from match_data_plots import plot_batter_dismissals , plot_runs_scored_against_bowlers , stadium_wise_runs , plot_season_wise_runs , plot_season_wise_violin_plot, plot_runs_distribution 
+from match_data_plots import plot_batter_dismissals , plot_runs_scored_against_bowlers , stadium_wise_runs , plot_season_wise_runs , plot_season_wise_violin_plot, plot_runs_distribution , toss_winner_match_wins_pie , team_toss_outcomes_bar_chart , plot_match_wins
+from match_data_plots import wicket_heatmap_for_team , runs_heatmap_by_bowl_over , average_vs_strike_rate, average_vs_economy_rate , plot_toss_outcome_team , runs_scored_by_over_type , plot_runs_scored_against_teams , runs_heatmap_for_batter
+from match_data_plots import wickets_taken_by_over_type , plot_wickets_dot_4s_6s , plot_bowler_most_beaten_by_batsman, plot_bowler_wickets
 import warnings 
 import numpy as np
 import json 
@@ -27,15 +30,16 @@ with open('teams_score_data.json') as file:
     teams_scores_data = json.load(file)
 
 external_stylesheets = [dbc.themes.BOOTSTRAP]
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets ,  suppress_callback_exceptions=True )
+app = dash.Dash(__name__, external_stylesheets=external_stylesheets , suppress_callback_exceptions=True  )
 
 app.layout = html.Div([
-    html.H1("IPL Analysis Dashboard", style={'textAlign': 'center'}),
+    html.H1("IPL Data Analysis", style={'textAlign': 'center'}),
     
     dcc.Tabs(id='tabs', value='tab-home', children=[
         dcc.Tab(label='Home', value='tab-home'),
         dcc.Tab(label='Teams', value='tab-teams'),
         dcc.Tab(label='Batsman', value='tab-batter'), 
+        dcc.Tab(label = 'Bowler' , value = 'tab-bowler') ,
     ]),
     
     html.Div([
@@ -65,7 +69,18 @@ app.layout = html.Div([
         dbc.Col([
             html.Div(id='matches-by-toss-decision-plot'),
             
-        ], width=3) , 
+        ], ) , 
+        dbc.Col([
+            html.Div(id = "outcome-toss-wins")
+
+        ]) , 
+        dbc.Col([
+            html.Div(id = "toss-won-by-teams")
+
+        ])
+    ]),
+    dbc.Row([
+        
         dbc.Col([
             html.Div(id='team-performance-plot'),
         ], width = 5 ),
@@ -73,7 +88,18 @@ app.layout = html.Div([
             html.Div(id='matches-won-by-teams-plot')
         ], width=4)
     ]),
-
+    dbc.Row([
+        dbc.Col([
+            
+            html.Div(id='runs-heatmap'),
+              
+        ], width=6),
+        dbc.Col([
+           
+            html.Div(id='wickets-heatmap'),
+                
+        ], width=6)
+    ]) , 
 
     dbc.Row([
         dbc.Col(html.Div(id='team-trophy-winner-info'),width = 3 ),
@@ -100,18 +126,30 @@ app.layout = html.Div([
     html.H3(id = "select-team-info") ,
     dbc.Row([
         dbc.Col([
+            # html.H4("Toss won v/s lost ") , 
+            html.Div(id = "plot-toss-outcome-team")
+    
+        ]),
+        dbc.Col([
            html.Div(id='toss-decision-plot'),
         ], width=3),
+
         dbc.Col([
-                html.Div(id='top-batsmen-plot'),
+            html.Div(id = 'team-outcome-toss-win') , 
+        ])
+        ,
+        
+    ]),
+    dbc.Row([
+        dbc.Col([
+            html.Div(id='top-batsmen-plot'),
                 
         ], width=5),  
         dbc.Col([
-                html.Div(id='top-bowlers-plot'),
+            html.Div(id='top-bowlers-plot'),
                 
         ], width=4),  
     ]),
-
     dbc.Row([
         dbc.Col([
             html.Div(id='stadium-matches-plot'),
@@ -120,10 +158,29 @@ app.layout = html.Div([
             html.Div(id = 'plot-matches-by-team'),
         ] , width=6 )
     ]),
-    # html.Div(
-    #     [dcc.Dropdown(id='batsman-dropdown')],
-    #     style={'display': 'none'}  
-    # ),
+    dbc.Row([
+        dbc.Col([
+            html.Div(id = "plot-average-vs-strike_rate-batsman")
+
+        ] , width= 6 ) , 
+        dbc.Col([
+            html.Div(id = "plot-economy-vs-average-bowler")
+
+        ] , width=6)
+    ]),
+    dbc.Row([
+        dbc.Col([
+            
+            html.Div(id='team-runs-heatmap'),
+              
+        ], width=6),
+        dbc.Col([
+           
+            html.Div(id='team-wickets-heatmap'),
+                
+        ], width=6)
+    ]) 
+    ,
     html.Div([dcc.Dropdown(id='batsman-dropdown')], style={'display': 'none'}),
 
     dbc.Row([
@@ -140,6 +197,15 @@ app.layout = html.Div([
         dbc.Col(html.Div(id = 'batter-hundred'  ) , width = 2) , 
     ]),
     dbc.Row([
+        dbc.Col([ 
+            html.Div(id = 'runs-distribution'),
+        ] , width=6  ) , 
+        
+        dbc.Col([ 
+            html.Div(id = 'runs-scored-by-over-type'),
+        ] , width=6  )
+    ]),
+    dbc.Row([
         dbc.Col([
             html.Div(id='plot-batter-dismissals'),
         ], width=7),
@@ -153,20 +219,95 @@ app.layout = html.Div([
             html.Div(id = 'plot-runs')
         ]) , 
         dbc.Col([
-            html.Div(id = "plot-season-wise-violin-plot")
+            html.Div(id = "plot-runs-heatmap-batter")
         ])
     ]),
+    
     dbc.Row([
         dbc.Col([
             html.Div(id='plot-stadium-wise-runs'),
-        ], width=4),
+        ], width=6),
+        dbc.Col([
+            html.Div(id = "plot-runs-scored-against-teams") ,
+        ], width = 6 )
+    ]),
+    
+    html.Div([dcc.Dropdown(id='bowler-dropdown')], style={'display': 'none'}),
+
+    dbc.Row([
+        dbc.Col([
+            dbc.Row([
+                dbc.Col([
+                    html.Div(id = 'bowler-wickets')
+                ])
+            ])
+        ] , width= 2 ) ,
+         dbc.Col([
+             dbc.Row([
+                 dbc.Col([
+                     html.Div(id = 'bowler-average') 
+                 ])
+             ])
+         ]) , 
+         dbc.Col([
+             dbc.Row([
+                 dbc.Col([
+                     html.Div(id = 'bowler-economy-rate') 
+                 ])
+             ])
+         ]) , 
+         dbc.Col([
+             dbc.Row([
+                 dbc.Col([
+                     html.Div(id = 'bowler-strike-rate') 
+                 ])
+             ])
+         ]) , 
+         dbc.Col([
+             dbc.Row([
+                 dbc.Col([
+                     html.Div(id = 'bowler-matches') 
+                 ])
+             ])
+         ]) , 
+         dbc.Col([
+             dbc.Row([
+                 dbc.Col([
+                     html.Div(id = 'runs-given') 
+                 ])
+             ])
+         ]) , 
+
+    ]) , 
+    dbc.Row([
+        dbc.Col([ 
+                    html.Div(id = 'bowling-distribution'),
+
+            
+        ] , width=6  ) , 
+        
+        dbc.Col([ 
+                    html.Div(id = 'wickets-taken-by-over-type'),
+
+            
+        ] , width=6  )
+    ]),
+    dbc.Row([
+        dbc.Col([
+
+            html.Div(id='plot-bowler-wickets'),
+
+        ], width=6),
 
         dbc.Col([ 
-             html.Div(id = 'runs-distribution'),
+
+            html.Div(id = 'plot-bowler-most-beaten-by-batsman'),
+
+            
         ] , width=6  )
     ]),
     
-])
+] , id = "main_page" , style={ 'padding': "15px" } )
 
 @app.callback(
     Output('tabs-content', 'children'),
@@ -239,6 +380,7 @@ def render_content(tab):
                 ], width=3)
             ]),
             dbc.Row([
+                html.H2("Analysis based on toss wins"),
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
@@ -246,7 +388,27 @@ def render_content(tab):
                             html.Div(id='matches-by-toss-decision-plot'),
                         ])
                     ])
-                ], width=3),
+                ], width=4),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H4("Outcomes of Toss Wins: Matches Won vs. Matches Lost") ,
+                            html.Div(id = "outcome-toss-wins")
+                        ])
+                    ])
+                ] , width = 4 ) , 
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H4("Tosses Won by Teams") , 
+                            html.Div(id = "toss-won-by-teams")
+                        ])
+                    ])
+                ] , width = 4 )
+                
+            ]),
+            dbc.Row([
+                html.H2("Analysis based on team performance"),
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
@@ -254,16 +416,35 @@ def render_content(tab):
                             html.Div(id='team-performance-plot'),
                         ])
                     ])
-                ], width=5),
+                ], width=6),
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H4("Matches Won vs Lost by Teams"),
+                            html.H4("Matches Won and Lost by Teams"),
                             html.Div(id='matches-won-by-teams-plot')
                         ])
                     ])
-                ], width=4)
-            ]),
+                ], width=6)
+            ]) , 
+            dbc.Row([
+                html.H2("Analysis of runs and wickets by balls and overs"),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H4("Runs") ,
+                            html.Div(id='runs-heatmap'),
+                        ])
+                    ])
+                ], width=6),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H4("Wickets") ,
+                            html.Div(id='wickets-heatmap'),
+                        ])
+                    ])
+                ], width=6)
+            ]) , 
         ])
     elif tab == 'tab-teams':
         return html.Div([
@@ -284,7 +465,7 @@ def render_content(tab):
                         dbc.CardBody([
                             dbc.Row([
                                 dbc.Col([
-                                    html.Div(html.Img(src='assets/trophy_logo.png', style={'height': '100px', 'width': '100px'})),
+                                    html.Div(html.Img(src='assets/trophy_logo.png', style={'height': '150px', 'width': '150px'})),
                                 ]),
                                 dbc.Col([
                                     # html.H4("Title Winner"),
@@ -344,28 +525,49 @@ def render_content(tab):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
+                            html.H4("Toss won v/s lost ") , 
+                            html.Div(id = "plot-toss-outcome-team")
+                        ])
+                    ])
+                ] , width = 4 ),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
                             html.H4("Win by Toss Decision") , 
                             html.Div(id='toss-decision-plot'),
                         ])
                     ])
-                ], width=3),
+                ], width=4),
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H4("Top Batsman"),
+                            html.H4("Outcome when won the Toss") ,
+                            html.Div(id = "team-outcome-toss-win") , 
+                        ])
+                    ])
+                ] , width = 4 ),
+                
+                
+                
+            ]),
+            dbc.Row([
+                html.H2("Top Performers"),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H4("Batsman"),
                             html.Div(id='top-batsmen-plot'),
                         ])
                     ])
-                ], width=5),  
+                ], width=6),  
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H4("Top Bowler"),
+                            html.H4("Bowler"),
                             html.Div(id='top-bowlers-plot'),
                         ])
                     ])
-                ], width=4),  
-                
+                ], width=6),  
             ]),
             dbc.Row([
                 dbc.Col([
@@ -387,6 +589,43 @@ def render_content(tab):
                     
                 ] , width=5 )
             ]),
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H4("Batsman Strike rate v/s Average") ,
+                            html.Div(id = "plot-average-vs-strike_rate-batsman")
+                        ])
+                    ])
+                ] , width= 6 ) , 
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H4("Bowler Economy v/s Average") ,
+                            html.Div(id = "plot-economy-vs-average-bowler")
+                        ])
+                    ])
+                ] , width=6)
+            ]),
+            dbc.Row([
+                html.H2("Analysis of runs and wickets by balls and overs"),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H4("Runs") ,
+                            html.Div(id='team-runs-heatmap'),
+                        ])
+                    ])
+                ], width=6),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H4("Wickets") ,
+                            html.Div(id='team-wickets-heatmap'),
+                        ])
+                    ])
+                ], width=6)
+            ]) , 
 
         ])
     elif tab == 'tab-batter':
@@ -489,21 +728,27 @@ def render_content(tab):
                     ])
                 ], width=2)
             ]),
+            
             dbc.Row([
-                dbc.Col([
+                dbc.Col([ 
                     dbc.Card([
                         dbc.CardBody([
-                            html.Div(id = 'plot-runs')
+                            html.H3("Runs distribution") , 
+                            html.Div(id = 'runs-distribution'),
                         ])
-                    ])
-                ]) , 
-                dbc.Col([
+                    ]),
+                    
+                ] , width=6  ) , 
+                
+                dbc.Col([ 
                     dbc.Card([
                         dbc.CardBody([
-                            html.Div(id = "plot-season-wise-violin-plot")
+                            html.H3("Runs by Over type") , 
+                            html.Div(id = 'runs-scored-by-over-type'),
                         ])
-                    ])
-                ])
+                    ]),
+                    
+                ] , width=6  )
             ]),
             dbc.Row([
                 dbc.Col([
@@ -525,11 +770,154 @@ def render_content(tab):
                     
                 ] , width=6  )
             ]),
+            
             dbc.Row([
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
+                            html.H3("Stadium wise runs") , 
                             html.Div(id='plot-stadium-wise-runs'),
+                        ])
+                    ])
+                ], width=6),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H3("Runs against teams") , 
+                            html.Div(id='plot-runs-scored-against-teams'),
+                        ])
+                    ])
+                ], width=6),
+                
+                dbc.Row([
+                    dbc.Col([
+                        dbc.Card([
+                            dbc.CardBody([
+                                html.Div(id = 'plot-runs')
+                            ])
+                        ])
+                    ]) , 
+                    dbc.Col([
+                        dbc.Card([
+                            dbc.CardBody([
+                                html.H3("Runs distribution across overs"),
+                                html.Div(id = "plot-runs-heatmap-batter")
+                            ])
+                        ])
+                    ]),
+                ]),
+            ]),
+
+        ])
+    elif tab == 'tab-bowler':
+        return html.Div([
+            html.Div([
+                html.Label("Select Bowler"),
+                dcc.Dropdown(
+                    id='bowler-dropdown',
+                    options=[
+                        {'label': team, 'value': team} for team in get_all_bowlers(ball_data)
+                    ],
+                   value="JJ Bumrah",
+                ),
+            ], style={'width': '20%', 'display': 'inline-block', 'verticalAlign': 'top'}),
+            
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            dbc.Row([
+                                dbc.Col([
+                                    html.Div(html.Img(src='assets\wicket.png', style={'height': '74px', 'width': '70px'})),
+                                ]),
+                                dbc.Col([
+                                    html.H3("Wickets"),
+                                    html.Div(id='bowler-wickets')
+                                ])
+                            ])
+                        ])
+                    ])
+                ], width=2),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            # dbc.Row([
+                            #     dbc.Col([
+                            #         html.Div(html.Img(src='assets/sixes.png', style={'height': '80px', 'width': '80px'})),
+                            #     ]),
+                            #     dbc.Col([
+                            html.H3("Average") , 
+                            html.Div(id='bowler-average')
+                            #     ])
+                            # ]),
+                        ])
+                    ])
+                ], width=2),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            
+                            html.H3("Economy"),
+                            html.Div(id='bowler-economy-rate')
+                                
+                        ])
+                    ])
+                ], width=2),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H3("Strike Rate") , 
+                            html.Div(id="bowler-strike-rate")
+                              
+                        ])
+                    ])
+                ], width=2),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H3("Matches") , 
+                            html.Div(id="bowler-matches")
+                        ])
+                    ])
+                ], width=2),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H3("Runs Conceded") , 
+                            html.Div(id="runs-given")
+                               
+                        ])
+                    ])
+                ], width=2)
+            ]),
+            
+            dbc.Row([
+                dbc.Col([ 
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H3("Bowling Distribution") , 
+                            html.Div(id = 'bowling-distribution'),
+                        ])
+                    ]),
+                    
+                ] , width=6  ) , 
+                
+                dbc.Col([ 
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H3("Runs by Over type") , 
+                            html.Div(id = 'wickets-taken-by-over-type'),
+                        ])
+                    ]),
+                    
+                ] , width=6  )
+            ]),
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H4("Most wickets taken of batsman"),
+                            html.Div(id='plot-bowler-wickets'),
                         ])
                     ])
                 ], width=6),
@@ -537,15 +925,52 @@ def render_content(tab):
                 dbc.Col([ 
                     dbc.Card([
                         dbc.CardBody([
-                            html.Div(id = 'runs-distribution'),
+                            html.H4("Most runs conceded to batsman"),
+                            html.Div(id = 'plot-bowler-most-beaten-by-batsman'),
                         ])
                     ]),
                     
                 ] , width=6  )
             ]),
+            
+            # dbc.Row([
+            #     dbc.Col([
+            #         dbc.Card([
+            #             dbc.CardBody([
+            #                 html.H3("Stadium wise runs") , 
+            #                 html.Div(id='plot-stadium-wise-runs'),
+            #             ])
+            #         ])
+            #     ], width=6),
+            #     dbc.Col([
+            #         dbc.Card([
+            #             dbc.CardBody([
+            #                 html.H3("Runs against teams") , 
+            #                 html.Div(id='plot-runs-scored-against-teams'),
+            #             ])
+            #         ])
+            #     ], width=6),
+                
+            #     dbc.Row([
+            #         dbc.Col([
+            #             dbc.Card([
+            #                 dbc.CardBody([
+            #                     html.Div(id = 'plot-runs')
+            #                 ])
+            #             ])
+            #         ]) , 
+            #         dbc.Col([
+            #             dbc.Card([
+            #                 dbc.CardBody([
+            #                     html.H3("Runs distribution across overs"),
+            #                     html.Div(id = "plot-runs-heatmap-batter")
+            #                 ])
+            #             ])
+            #         ]),
+            #     ]),
+            # ]),
 
         ])
-
     
     else:
         return html.Div([
@@ -672,8 +1097,13 @@ def update_matches_by_toss_decision(selected_year):
     [Input('year-dropdown', 'value')]
 )
 def update_team_performance(selected_year):
-    fig = plot_team_performance(match_data)
-    return dcc.Graph(figure=fig)
+    if selected_year == None : 
+        fig = plot_team_performance(match_data)
+        return dcc.Graph(figure=fig)
+
+    else:
+        fig = plot_match_wins(match_data , ball_data , season = selected_year )
+        return dcc.Graph(figure=fig)
 
 
 @app.callback(
@@ -701,6 +1131,67 @@ def update_team_select_info(active_tab , selected_year , selected_team ) :
         return html.H3(f"{selected_team}")
     else:
         return "" 
+
+
+@app.callback(
+        Output('outcome-toss-wins' , 'children') , 
+        [Input(
+            'tabs' , 'value' 
+        ),
+        Input('year-dropdown' ,'value')]
+)
+def update_outcome_toss_wins(active_tab , selected_year ) : 
+    if active_tab == 'tab-home':
+        fig = toss_winner_match_wins_pie(match_data , season = selected_year)
+        return dcc.Graph(figure=fig)
+    else:
+        return ""
+
+
+@app.callback(
+        Output('toss-won-by-teams' , 'children') , 
+        [Input(
+            'tabs' , 'value' 
+        ),
+        Input('year-dropdown' ,'value')]
+)
+def update_toss_won_by_teams(active_tab , selected_year ):
+    if active_tab == 'tab-home':
+        fig = team_toss_outcomes_bar_chart(match_data , season = selected_year) 
+        return dcc.Graph(figure = fig ) 
+    else:
+        return ""
+
+
+@app.callback(
+    Output('runs-heatmap' , 'children') , 
+    [Input(
+        'tabs' , 'value' 
+    ),
+    Input('year-dropdown' ,'value')]
+)
+def update_runs_heatmap( active_tab , selected_year ) : 
+    if active_tab == 'tab-home':
+        fig = runs_heatmap_by_bowl_over(match_data , ball_data , season = selected_year)
+        return dcc.Graph(figure=fig)
+    return ""
+
+
+@app.callback(
+    Output('wickets-heatmap' , 'children') , 
+    [Input(
+        'tabs' , 'value' 
+    ),
+    Input('year-dropdown' ,'value')]
+)
+def update_runs_heatmap( active_tab , selected_year ) : 
+    if active_tab == 'tab-home':
+        fig = wicket_heatmap_for_team(match_data , ball_data , season = selected_year)
+        return dcc.Graph(figure=fig)
+    return ""
+
+
+
 
 @app.callback(
     Output('team-trophy-winner-info', 'children'),
@@ -871,6 +1362,32 @@ def update_toss_decision_plot(selected_year, selected_team):
     else:
         return ""
 
+@app.callback(
+    Output('plot-toss-outcome-team' , 'children') , 
+    [Input('tabs' , 'value') , 
+     Input('year-dropdown' , 'value') , 
+     Input('team-dropdown' , 'value')]
+)
+def update_plot_toss_outcome_team(active_tab , selected_year , selected_team ) : 
+    if active_tab == 'tab-teams':
+        fig = plot_toss_outcome_team(match_data=match_data , team = selected_team , season = selected_year)
+        return dcc.Graph(figure = fig )
+    return ""
+
+
+@app.callback(
+    Output('team-outcome-toss-win' , 'children') , 
+    [Input('tabs' , 'value') , 
+     Input('year-dropdown' , 'value') , 
+     Input('team-dropdown' , 'value')]
+)
+def update_team_outcome_toss_win( active_tab , selected_year , selected_team ) : 
+    if active_tab == 'tab-teams':
+        fig = toss_winner_match_wins_pie(match_data=match_data , team=selected_team , season=selected_year)
+        return dcc.Graph(figure = fig )
+    return ""
+
+
 
 @app.callback(
     Output('plot-matches-by-team' , 'children') , 
@@ -883,6 +1400,61 @@ def update_plot_matches_by_team(selected_year , selected_team ) :
         return dcc.Graph(figure = fig ) 
     else: 
         return ""
+
+@app.callback(
+    Output('plot-average-vs-strike_rate-batsman' , 'children') , 
+    [Input('tabs', 'value'),Input('year-dropdown' , 'value'),
+     Input('team-dropdown' , 'value')]  
+)
+def update_plot_average_vs_strike_rate_batsman(active_tab , selected_year , selected_team ) : 
+    if active_tab == 'tab-teams':
+        fig = average_vs_strike_rate(match_data= match_data , ball_data=ball_data , team = selected_team , season = selected_year)
+        return dcc.Graph(figure = fig )
+    return ""
+
+
+@app.callback(
+    Output('plot-economy-vs-average-bowler' , 'children') , 
+    [Input('tabs', 'value'),Input('year-dropdown' , 'value'),
+     Input('team-dropdown' , 'value')]  
+)
+def update_plot_average_vs_strike_rate_batsman(active_tab , selected_year , selected_team ) : 
+    if active_tab == 'tab-teams':
+        fig = average_vs_economy_rate(match_data= match_data , ball_data=ball_data , team = selected_team , season = selected_year)
+        return dcc.Graph(figure = fig )
+    return ""
+
+
+
+@app.callback(
+    Output('team-runs-heatmap' , 'children') , 
+    [Input(
+        'tabs' , 'value' 
+    ),
+    Input('year-dropdown' ,'value') , 
+    Input('team-dropdown' , 'value')]
+)
+def update_runs_heatmap( active_tab , selected_year , selected_team  ) : 
+    if active_tab == 'tab-teams':
+        fig = runs_heatmap_by_bowl_over(match_data , ball_data , season = selected_year , team =selected_team )
+        return dcc.Graph(figure=fig)
+    return ""
+
+
+@app.callback(
+    Output('team-wickets-heatmap' , 'children') , 
+    [Input(
+        'tabs' , 'value' 
+    ),
+    Input('year-dropdown' ,'value'),
+    Input('team-dropdown' , 'value')]
+)
+def update_runs_heatmap( active_tab , selected_year , selected_team ) : 
+    if active_tab == 'tab-teams':
+        fig = wicket_heatmap_for_team(match_data , ball_data , season = selected_year , team = selected_team)
+        return dcc.Graph(figure=fig)
+    return ""
+
 
 
 @app.callback(
@@ -1006,6 +1578,8 @@ def update_batter_fifty(active_tab , selected_year , selected_batter ):
 def update_plot_batter_dismissals(active_tab , selected_year , selected_batter ) : 
     if active_tab != 'tab-batter':
         return ""
+    if selected_batter == None : 
+        selected_batter = "V Kohli"
     fig = plot_batter_dismissals(match_data, ball_data, batter= selected_batter, season=selected_year)
     return html.Div([
         dcc.Graph(figure=fig)
@@ -1023,6 +1597,8 @@ def update_plot_batter_dismissals(active_tab , selected_year , selected_batter )
 def update_plot_runs_scored_against_bowler(active_tab , selected_year , selected_batter ) : 
     if active_tab != 'tab-batter':
         return ""
+    if selected_batter == None : 
+        selected_batter = "V Kohli"
     fig = plot_runs_scored_against_bowlers(
         match_data , ball_data , batter= selected_batter , season= selected_year
     )
@@ -1042,29 +1618,36 @@ def update_plot_runs_scored_against_bowler(active_tab , selected_year , selected
 def update_plot_runs(active_tab , selected_year , selected_batter ) : 
     if active_tab != 'tab-batter':
         return "" 
+    if selected_batter == None : 
+        selected_batter = "V Kohli"
     fig = plot_season_wise_runs(match_data , ball_data, batter=selected_batter , season=selected_year) 
+    title = f"Runs scored in each match of season : {selected_year}"
+    if selected_year == None : 
+        title = "Runs scored season wise"
     return html.Div([
-        html.H3("Line Plot of Runs scored"),
+        html.H3(f"{title}"),
         dcc.Graph(figure=fig)
     ])
 
 
-@app.callback(
-    Output('plot-season-wise-violin-plot' , 'children') , 
-    [
-        Input('tabs' , 'value'),
-        Input('year-dropdown' , 'value') ,
-        Input('batsman-dropdown' , 'value') 
-    ]
-)
-def update_plot_season_wise_violin_plot( active_tab , selected_year , selected_battter ) : 
-    if active_tab != 'tab-batter':
-        return "" 
-    fig = plot_season_wise_violin_plot(match_data , ball_data , batter=selected_battter ) 
-    return html.Div([
-        html.H3("Season Wise Runs Violin plot"),
-        dcc.Graph(figure = fig)
-    ])
+# @app.callback(
+#     Output('plot-runs-violin-plot-batter' , 'children') , 
+#     [
+#         Input('tabs' , 'value'),
+#         Input('year-dropdown' , 'value') ,
+#         Input('batsman-dropdown' , 'value') 
+#     ]
+# )
+# def update_plot_season_wise_violin_plot( active_tab , selected_year , selected_battter ) : 
+#     if active_tab != 'tab-batter':
+#         return "" 
+#     if selected_batter == None : 
+#         selected_batter = "V Kohli"
+#     fig = plot_season_wise_violin_plot(match_data , ball_data , batter=selected_battter ) 
+#     return html.Div([
+#         html.H3("Season Wise Runs Violin plot"),
+#         dcc.Graph(figure = fig)
+#     ])
 
 @app.callback(
     Output('plot-stadium-wise-runs' , 'children'),
@@ -1077,11 +1660,28 @@ def update_plot_season_wise_violin_plot( active_tab , selected_year , selected_b
 def update_plot_stadium_wise_runs(active_tab, selected_year , selected_batter ) :
     if active_tab != 'tab-batter':
         return ""
+    if selected_batter == None : 
+        selected_batter = "V Kohli"
     fig = stadium_wise_runs(match_data , ball_data , batter = selected_batter , season = selected_year) 
     return html.Div([
-        html.H3("Stadium wise runs (top 5)") , 
         dcc.Graph(figure=fig)
     ])
+
+@app.callback(
+    Output('plot-runs-scored-against-teams' , 'children') , 
+    [
+        Input('tabs' , 'value') , 
+        Input('year-dropdown' , 'value') , 
+        Input('batsman-dropdown' , 'value') 
+    ]
+)
+def update_plot_runs_scored_against_teams(active_tab , selected_year , selected_batter ) : 
+    if active_tab != 'tab-batter' : 
+        return "" 
+    if selected_batter == None : 
+        selected_batter = "V Kohli"
+    fig = plot_runs_scored_against_teams(match_data=match_data , ball_data = ball_data , batter=selected_batter , season = selected_year ) 
+    return dcc.Graph(figure=fig )
 
 
 @app.callback(
@@ -1096,11 +1696,206 @@ def update_plot_stadium_wise_runs(active_tab, selected_year , selected_batter ) 
 def update_plot_runs_distribution(active_tab, selected_year , selected_batter ) :
     if active_tab != 'tab-batter':
         return ""
+    if selected_batter == None : 
+        selected_batter = "V Kohli"
     fig = plot_runs_distribution(match_data , ball_data , batter = selected_batter , season = selected_year) 
     return html.Div([
-        html.H3("Runs distribution") , 
         dcc.Graph(figure=fig)
     ])
 
+
+
+@app.callback(
+    Output('runs-scored-by-over-type' , 'children'),
+    [
+        Input('tabs' , 'value'),
+        Input('year-dropdown' , 'value') ,
+        Input('batsman-dropdown' , 'value') ,
+        
+    ]
+)
+def update_runs_scored_by_over_type( active_tab , selected_year , selected_batter ) : 
+    if active_tab != 'tab-batter':
+        return "" 
+    if selected_batter == None : 
+        selected_batter = "V Kohli"
+    fig = runs_scored_by_over_type(match_data=match_data, ball_data=ball_data , batter=selected_batter , season=selected_year)
+    return dcc.Graph(figure = fig )
+
+@app.callback(
+    Output('plot-runs-heatmap-batter','children') ,
+    [
+        Input('tabs' , 'value') ,
+        Input('year-dropdown' , 'value') , 
+        Input('batsman-dropdown' , 'value')
+    ]
+)
+def updaate_plot_runs_heatmap_batter(active_tab , selected_year , selected_batter ) : 
+    if active_tab != 'tab-batter' : 
+        return ""
+    if selected_batter == None : 
+        selected_batter = "V Kohli"
+    fig = runs_heatmap_for_batter(match_data=match_data, ball_data= ball_data , batter= selected_batter , season = selected_year)
+    return dcc.Graph(figure= fig )
+
+@app.callback(
+    Output('bowler-wickets' , 'children') , 
+    [
+        Input('tabs' , 'value' ) , 
+        Input('year-dropdown' , 'value') , 
+        Input('bowler-dropdown' , 'value')
+    ]
+)
+def update_bowler_wickets(active_tab , selected_year , selected_bowler ) : 
+    if active_tab != 'tab-bowler' :
+        return ""
+    data = get_bowler_wickets(match_data=match_data , ball_data = ball_data , bowler=selected_bowler , season = selected_year)
+    return html.H3(f"{data['total_wickets']}")
+
+
+
+@app.callback(
+    Output('bowler-average' , 'children') , 
+    [
+        Input('tabs' , 'value' ) , 
+        Input('year-dropdown' , 'value') , 
+        Input('bowler-dropdown' , 'value')
+    ]
+)
+def update_bowler_wickets(active_tab , selected_year , selected_bowler ) : 
+    if active_tab != 'tab-bowler' :
+        return ""
+    data = get_bowler_wickets(match_data=match_data , ball_data = ball_data , bowler=selected_bowler , season = selected_year)
+    return html.H3(f"{data['average']}")
+
+
+@app.callback(
+    Output('bowler-economy-rate' , 'children') , 
+    [
+        Input('tabs' , 'value' ) , 
+        Input('year-dropdown' , 'value') , 
+        Input('bowler-dropdown' , 'value')
+    ]
+)
+def update_bowler_wickets(active_tab , selected_year , selected_bowler ) : 
+    if active_tab != 'tab-bowler' :
+        return ""
+    data = get_bowler_wickets(match_data=match_data , ball_data = ball_data , bowler=selected_bowler , season = selected_year)
+    return html.H3(f"{data['economy_rate']}")
+
+
+
+@app.callback(
+    Output('bowler-strike-rate' , 'children') , 
+    [
+        Input('tabs' , 'value' ) , 
+        Input('year-dropdown' , 'value') , 
+        Input('bowler-dropdown' , 'value')
+    ]
+)
+def update_bowler_wickets(active_tab , selected_year , selected_bowler ) : 
+    if active_tab != 'tab-bowler' :
+        return ""
+    data = get_bowler_wickets(match_data=match_data , ball_data = ball_data , bowler=selected_bowler , season = selected_year)
+    return html.H3(f"{data['strike_rate']}")
+
+
+@app.callback(
+    Output('bowler-matches' , 'children') , 
+    [
+        Input('tabs' , 'value' ) , 
+        Input('year-dropdown' , 'value') , 
+        Input('bowler-dropdown' , 'value')
+    ]
+)
+def update_bowler_wickets(active_tab , selected_year , selected_bowler ) : 
+    if active_tab != 'tab-bowler' :
+        return ""
+    data = get_bowler_wickets(match_data=match_data , ball_data = ball_data , bowler=selected_bowler , season = selected_year)
+    return html.H3(f"{data['matches']}")
+
+
+
+
+@app.callback(
+    Output('runs-given' , 'children') , 
+    [
+        Input('tabs' , 'value' ) , 
+        Input('year-dropdown' , 'value') , 
+        Input('bowler-dropdown' , 'value')
+    ]
+)
+def update_bowler_wickets(active_tab , selected_year , selected_bowler ) : 
+    if active_tab != 'tab-bowler' :
+        return ""
+    data = get_bowler_wickets(match_data=match_data , ball_data = ball_data , bowler=selected_bowler , season = selected_year)
+    return html.H3(f"{data['total_runs_given']}")
+
+
+@app.callback(
+    Output('bowling-distribution' , 'children') , 
+    [
+        Input('tabs' , 'value' ) , 
+        Input('year-dropdown' , 'value') , 
+        Input('bowler-dropdown' , 'value')
+    ]
+)
+def update_wickets_taken_by_over_type( active_tab , selected_year , selected_bowler) : 
+    if active_tab != 'tab-bowler' : 
+        return "" 
+    fig = plot_wickets_dot_4s_6s(match_data= match_data , ball_data= ball_data , bowler=selected_bowler , season=selected_year)
+    return dcc.Graph(figure=fig) 
+
+
+
+@app.callback(
+    Output('wickets-taken-by-over-type' , 'children') , 
+    [
+        Input('tabs' , 'value' ) , 
+        Input('year-dropdown' , 'value') , 
+        Input('bowler-dropdown' , 'value')
+    ]
+)
+def update_wickets_taken_by_over_type( active_tab , selected_year , selected_bowler) : 
+    if active_tab != 'tab-bowler' : 
+        return "" 
+    fig = wickets_taken_by_over_type(match_data= match_data , ball_data= ball_data , bowler=selected_bowler , season=selected_year)
+    return dcc.Graph(figure=fig) 
+
+
+@app.callback(
+    Output('plot-bowler-wickets' , 'children') , 
+    [
+        Input('tabs' , 'value' ) , 
+        Input('year-dropdown' , 'value') , 
+        Input('bowler-dropdown' , 'value')      
+    ]
+)
+def update_wickets_taken_by_over_type( active_tab , selected_year , selected_bowler) : 
+    if active_tab != 'tab-bowler' : 
+        return "" 
+    fig = plot_bowler_wickets(match_data= match_data , ball_data= ball_data , bowler=selected_bowler , season=selected_year)
+    return dcc.Graph(figure=fig) 
+
+
+
+@app.callback(
+    Output('plot-bowler-most-beaten-by-batsman' , 'children') , 
+    [
+        Input('tabs' , 'value' ) , 
+        Input('year-dropdown' , 'value') , 
+        Input('bowler-dropdown' , 'value')
+    ]
+)
+def update_wickets_taken_by_over_type( active_tab , selected_year , selected_bowler) : 
+    if active_tab != 'tab-bowler' : 
+        return "" 
+    fig = plot_bowler_most_beaten_by_batsman(match_data= match_data , ball_data= ball_data , bowler=selected_bowler , season=selected_year)
+    return dcc.Graph(figure=fig) 
+
+
+
 if __name__ == '__main__':
     app.run_server(debug=False ,)
+
+
